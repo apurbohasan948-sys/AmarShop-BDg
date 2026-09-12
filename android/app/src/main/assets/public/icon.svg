@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bg)" />
+  <circle cx="256" cy="256" r="180" fill="url(#accent)" opacity="0.15" />
+  <!-- Smartphone frame with AI spark -->
+  <rect x="176" y="116" width="160" height="280" rx="32" fill="none" stroke="#60a5fa" stroke-width="20" />
+  <circle cx="256" cy="356" r="14" fill="#60a5fa" />
+  <!-- AI Sparkle / Robot Face -->
+  <path d="M256 160 L266 195 L301 205 L266 215 L256 250 L246 215 L211 205 L246 195 Z" fill="#fbbf24" />
+  <circle cx="230" cy="285" r="12" fill="#38bdf8" />
+  <circle cx="282" cy="285" r="12" fill="#38bdf8" />
+  <path d="M230 315 Q256 335 282 315" stroke="#38bdf8" stroke-width="8" fill="none" stroke-linecap="round" />
+</svg>
