@@ -1,0 +1,6 @@
+{
+  "appId": "com.shopbase.ai.automation",
+  "appName": "AmarShop BD",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

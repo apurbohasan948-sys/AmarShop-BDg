@@ -1,0 +1,6 @@
+{
+  "name": "AmarShop BD - E-Commerce AI Automation",
+  "description": "Automated e-commerce hub for ShopBase product collection, AI marketing generation, social media publishing queue, and market research.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
