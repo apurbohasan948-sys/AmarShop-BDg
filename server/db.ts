@@ -32,100 +32,114 @@ const DB_FILE = path.join(DATA_DIR, 'app_data.json');
 
 const INITIAL_MODELS: AIModelConfig[] = [
   {
-    id: 'gemini-flash',
-    name: 'Gemini 2.5 Flash',
-    provider: 'gemini',
-    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-    endpoint: '/models/gemini-2.5-flash:generateContent',
-    apiKey: process.env.GEMINI_API_KEY || '',
-    modelName: 'gemini-2.5-flash',
-    authHeaderType: 'x-api-key',
-    temperature: 0.7,
-    maxTokens: 2048,
-    systemPrompt: 'You are an elite e-commerce marketing strategist for ShopBase BD in Bangladesh. Generate authentic, high-converting product marketing in natural conversational Bangla.',
-    status: process.env.GEMINI_API_KEY ? 'online' : 'untested',
-    latencyMs: 420,
-    lastTestedAt: new Date().toISOString(),
-    isEnabled: true,
-    isDefault: true,
-  },
-  {
-    id: 'openai-gpt4o-mini',
-    name: 'OpenAI GPT-4o Mini',
-    provider: 'openai',
-    baseUrl: 'https://api.openai.com/v1',
-    endpoint: '/chat/completions',
-    apiKey: '',
-    modelName: 'gpt-4o-mini',
-    authHeaderType: 'Bearer',
-    temperature: 0.7,
-    maxTokens: 2048,
-    systemPrompt: 'You are an expert social media copywriter specialized in Bangladeshi consumer behavior.',
-    status: 'untested',
-    isEnabled: true,
-  },
-  {
-    id: 'groq-llama3-70b',
-    name: 'Groq Llama 3.3 70B',
-    provider: 'groq',
-    baseUrl: 'https://api.groq.com/openai/v1',
-    endpoint: '/chat/completions',
-    apiKey: '',
-    modelName: 'llama-3.3-70b-versatile',
-    authHeaderType: 'Bearer',
-    temperature: 0.6,
-    maxTokens: 2048,
-    systemPrompt: 'Generate engaging short-form TikTok & Reel scripts with high retention hooks.',
-    status: 'untested',
-    isEnabled: true,
-  },
-  {
-    id: 'anthropic-claude',
-    name: 'Anthropic Claude 3.5 Sonnet',
-    provider: 'anthropic',
-    baseUrl: 'https://api.anthropic.com/v1',
-    endpoint: '/messages',
-    apiKey: '',
-    modelName: 'claude-3-5-sonnet-20241022',
-    authHeaderType: 'x-api-key',
-    temperature: 0.7,
-    maxTokens: 2048,
-    systemPrompt: 'Create detailed product reviews, buyer objection handling, and YouTube descriptions.',
-    status: 'untested',
-    isEnabled: false,
-  },
-  {
     id: 'deepseek-chat',
-    name: 'DeepSeek Chat (V3)',
+    providerName: 'DeepSeek',
+    name: 'DeepSeek',
     provider: 'deepseek',
     baseUrl: 'https://api.deepseek.com',
     endpoint: '/chat/completions',
     apiKey: '',
     modelName: 'deepseek-chat',
+    apiType: 'openai-compatible',
     authHeaderType: 'Bearer',
     temperature: 0.7,
     maxTokens: 2048,
     systemPrompt: 'Direct response copywriting for South Asian e-commerce products.',
     status: 'untested',
-    isEnabled: false,
+    lastTestStatus: 'Not Tested',
+    enabled: true,
+    isEnabled: true,
+    isDefault: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
-    id: 'custom-rest-api',
-    name: 'Custom OpenAI-Compatible API',
-    provider: 'custom',
-    baseUrl: 'https://api.together.xyz/v1',
+    id: 'groq-llama3-70b',
+    providerName: 'Groq',
+    name: 'Groq',
+    provider: 'groq',
+    baseUrl: 'https://api.groq.com/openai/v1',
     endpoint: '/chat/completions',
     apiKey: '',
-    modelName: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+    modelName: 'llama-3.3-70b-versatile',
+    apiType: 'openai-compatible',
     authHeaderType: 'Bearer',
-    requestTemplate: '{"model": "{{model}}", "messages": [{"role": "system", "content": "{{systemPrompt}}"}, {"role": "user", "content": "{{prompt}}"}], "temperature": {{temperature}}, "max_tokens": {{maxTokens}}}',
-    responsePath: 'choices[0].message.content',
+    temperature: 0.6,
+    maxTokens: 2048,
+    systemPrompt: 'Generate engaging short-form TikTok & Reel scripts with high retention hooks.',
+    status: 'untested',
+    lastTestStatus: 'Not Tested',
+    enabled: true,
+    isEnabled: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'openai-gpt4o-mini',
+    providerName: 'OpenAI',
+    name: 'OpenAI',
+    provider: 'openai',
+    baseUrl: 'https://api.openai.com/v1',
+    endpoint: '/chat/completions',
+    apiKey: '',
+    modelName: 'gpt-4o-mini',
+    apiType: 'openai-compatible',
+    authHeaderType: 'Bearer',
     temperature: 0.7,
     maxTokens: 2048,
-    systemPrompt: 'E-commerce creative writer for video hooks and selling angles.',
+    systemPrompt: 'You are an expert social media copywriter specialized in Bangladeshi consumer behavior.',
     status: 'untested',
-    isEnabled: false,
+    lastTestStatus: 'Not Tested',
+    enabled: true,
+    isEnabled: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
+  {
+    id: 'openrouter-auto',
+    providerName: 'OpenRouter',
+    name: 'OpenRouter',
+    provider: 'openrouter',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    endpoint: '/chat/completions',
+    apiKey: '',
+    modelName: 'openrouter/auto',
+    apiType: 'openai-compatible',
+    authHeaderType: 'Bearer',
+    temperature: 0.7,
+    maxTokens: 2048,
+    systemPrompt: 'E-commerce product descriptions and Bangladeshi viral marketing.',
+    status: 'untested',
+    lastTestStatus: 'Not Tested',
+    enabled: false,
+    isEnabled: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'gemini-flash',
+    providerName: 'Google Gemini',
+    name: 'Google Gemini',
+    provider: 'gemini',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    endpoint: '/models/gemini-2.5-flash:generateContent',
+    apiKey: process.env.GEMINI_API_KEY || '',
+    modelName: 'gemini-2.5-flash',
+    apiType: 'gemini',
+    authHeaderType: 'x-api-key',
+    temperature: 0.7,
+    maxTokens: 2048,
+    systemPrompt: 'You are an elite e-commerce marketing strategist for ShopBase BD in Bangladesh. Generate authentic, high-converting product marketing in natural conversational Bangla.',
+    status: process.env.GEMINI_API_KEY ? 'online' : 'untested',
+    lastTestStatus: process.env.GEMINI_API_KEY ? 'Working' : 'Not Tested',
+    latency: 420,
+    latencyMs: 420,
+    lastTestedAt: new Date().toISOString(),
+    enabled: true,
+    isEnabled: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
 ];
 
 const INITIAL_PRODUCTS: Product[] = [
@@ -603,9 +617,15 @@ class DatabaseService {
   private saveDataDirect(data: DatabaseSchema) {
     try {
       this.ensureDirectory();
-      const tmp = `${DB_FILE}.tmp`;
-      fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf-8');
-      fs.renameSync(tmp, DB_FILE);
+      const serialized = JSON.stringify(data, null, 2);
+      try {
+        const tmp = `${DB_FILE}.tmp`;
+        fs.writeFileSync(tmp, serialized, 'utf-8');
+        fs.renameSync(tmp, DB_FILE);
+      } catch (renameErr) {
+        // Fallback to direct synchronous write
+        fs.writeFileSync(DB_FILE, serialized, 'utf-8');
+      }
     } catch (err) {
       console.error('Failed to write database file', err);
     }
@@ -657,26 +677,111 @@ class DatabaseService {
 
   // --- AI MODELS ---
   public getModels(): AIModelConfig[] {
-    return this.data.aiModels;
+    // Ensure all stored models have consistent properties
+    return this.data.aiModels.map(m => {
+      const pName = m.providerName || m.name || 'Cloud AI';
+      const isEn = m.enabled !== undefined ? m.enabled : (m.isEnabled !== undefined ? m.isEnabled : true);
+      const testStat = m.lastTestStatus || (m.status === 'online' ? 'Working' : (m.status === 'error' ? 'Failed' : 'Not Tested'));
+      return {
+        ...m,
+        providerName: pName,
+        name: pName,
+        apiType: m.apiType || 'openai-compatible',
+        enabled: isEn,
+        isEnabled: isEn,
+        lastTestStatus: testStat,
+        latency: m.latency ?? m.latencyMs,
+        latencyMs: m.latency ?? m.latencyMs,
+      };
+    });
   }
 
   public getModelById(id: string): AIModelConfig | undefined {
-    return this.data.aiModels.find(m => m.id === id);
+    return this.getModels().find(m => m.id === id);
   }
 
   public saveModel(model: AIModelConfig): AIModelConfig {
-    const idx = this.data.aiModels.findIndex(m => m.id === model.id);
-    if (idx >= 0) {
-      this.data.aiModels[idx] = model;
-    } else {
-      this.data.aiModels.push(model);
+    if (!model.id || model.id.trim() === '') {
+      model.id = `model-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
     }
+
+    const providerName = (model.providerName || model.name || 'Cloud AI').trim();
+    const modelName = (model.modelName || '').trim();
+    const baseUrl = (model.baseUrl || 'https://api.openai.com/v1').trim();
+    const isEn = model.enabled !== undefined ? model.enabled : (model.isEnabled !== undefined ? model.isEnabled : true);
+    const lastTestStatus = model.lastTestStatus || (model.status === 'online' ? 'Working' : (model.status === 'error' ? 'Failed' : 'Not Tested'));
+    const latency = model.latency ?? model.latencyMs;
+
+    const normalizedModel: AIModelConfig = {
+      ...model,
+      id: model.id,
+      providerName,
+      name: providerName,
+      modelName,
+      baseUrl,
+      apiType: model.apiType || 'openai-compatible',
+      authHeaderType: model.authHeaderType || 'Bearer',
+      temperature: model.temperature ?? 0.7,
+      maxTokens: model.maxTokens || 2048,
+      systemPrompt: model.systemPrompt || 'You are an e-commerce marketing expert for Bangladesh.',
+      enabled: isEn,
+      isEnabled: isEn,
+      lastTestStatus,
+      status: lastTestStatus === 'Working' ? 'online' : (lastTestStatus === 'Failed' || lastTestStatus === 'Authentication Failed' ? 'error' : 'untested'),
+      latency,
+      latencyMs: latency,
+      lastTestedAt: model.lastTestedAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdAt: model.createdAt || new Date().toISOString(),
+    };
+
+    // If marked default, unset default on other models
+    if (normalizedModel.isDefault) {
+      this.data.aiModels.forEach(m => {
+        if (m.id !== normalizedModel.id) m.isDefault = false;
+      });
+    }
+
+    const idx = this.data.aiModels.findIndex(m => m.id === normalizedModel.id);
+    if (idx >= 0) {
+      // Preserve existing secret API key if client passed masked key or blank
+      if (!normalizedModel.apiKey || normalizedModel.apiKey.includes('••••') || normalizedModel.apiKey.trim() === '') {
+        normalizedModel.apiKey = this.data.aiModels[idx].apiKey || '';
+      }
+      this.data.aiModels[idx] = normalizedModel;
+    } else {
+      // If no model was default, make this one default
+      const hasDefault = this.data.aiModels.some(m => m.isDefault);
+      if (!hasDefault) {
+        normalizedModel.isDefault = true;
+      }
+      this.data.aiModels.push(normalizedModel);
+    }
+
     this.saveData();
-    return model;
+    return normalizedModel;
   }
 
   public deleteModel(id: string): boolean {
+    const wasDefault = this.data.aiModels.find(m => m.id === id)?.isDefault;
     this.data.aiModels = this.data.aiModels.filter(m => m.id !== id);
+
+    // If default model was deleted, promote another model to default
+    if (wasDefault && this.data.aiModels.length > 0) {
+      this.data.aiModels[0].isDefault = true;
+    }
+
+    // Clean up task assignments if referencing deleted model
+    const tasks = this.data.taskAssignments;
+    if (tasks.productAnalysis === id) tasks.productAnalysis = this.data.aiModels[0]?.id || '';
+    if (tasks.facebookCaption === id) tasks.facebookCaption = this.data.aiModels[0]?.id || '';
+    if (tasks.youtubeContent === id) tasks.youtubeContent = this.data.aiModels[0]?.id || '';
+    if (tasks.tiktokContent === id) tasks.tiktokContent = this.data.aiModels[0]?.id || '';
+    if (tasks.videoScript === id) tasks.videoScript = this.data.aiModels[0]?.id || '';
+    if (tasks.primaryModelId === id) tasks.primaryModelId = this.data.aiModels[0]?.id || '';
+    if (tasks.fallbackModelId === id) tasks.fallbackModelId = '';
+    if (tasks.fallbackModel2Id === id) tasks.fallbackModel2Id = '';
+
     this.saveData();
     return true;
   }
@@ -686,7 +791,10 @@ class DatabaseService {
   }
 
   public saveTaskAssignments(assignments: TaskModelAssignments) {
-    this.data.taskAssignments = assignments;
+    this.data.taskAssignments = {
+      ...this.data.taskAssignments,
+      ...assignments,
+    };
     this.saveData();
     return this.data.taskAssignments;
   }

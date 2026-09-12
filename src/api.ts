@@ -141,6 +141,19 @@ export const api = {
     return res.json();
   },
 
+  saveAndTestAiModel: async (model: Partial<AIModelConfig>): Promise<{ model: AIModelConfig & { hasKey: boolean }; testResult: any }> => {
+    const res = await fetch('/api/ai/save-and-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(model),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(err.error || 'Failed to save and test model');
+    }
+    return res.json();
+  },
+
   getTaskAssignments: async (): Promise<TaskModelAssignments> => {
     const res = await fetch('/api/ai/tasks');
     return res.json();

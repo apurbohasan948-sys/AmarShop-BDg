@@ -1,84 +1,55 @@
-import { GoogleGenAI } from '@google/genai';
 import { AIModelConfig, Product, TaskModelAssignments } from '../../src/types';
 import { db } from '../db';
+import { AdapterRegistry } from './adapters/AdapterRegistry';
+import { AdapterTestResult } from './adapters/AIProviderAdapter';
 
-export interface ModelTestResult {
-  success: boolean;
+export interface ModelTestResult extends AdapterTestResult {
   modelId: string;
   modelName: string;
   latencyMs: number;
-  message: string;
-  sampleResponse?: string;
-  status: 'online' | 'error';
 }
 
 export class AIModelManager {
   /**
-   * Test an AI model configuration with a real minimal request
+   * Test an AI model configuration with a real minimal request using its adapter
    */
   public static async testModel(modelConfig: AIModelConfig): Promise<ModelTestResult> {
-    const start = Date.now();
-    const testPrompt = 'Say "OK - ShopBase Automation Connected" in 5 words or less.';
+    const adapter = AdapterRegistry.getAdapter(modelConfig);
+    const result = await adapter.test(modelConfig);
 
-    try {
-      const responseText = await this.invokeModelDirect(modelConfig, testPrompt, 'You are a diagnostic health checker. Reply very concisely.');
-      const latencyMs = Date.now() - start;
+    const updatedModel: AIModelConfig = {
+      ...modelConfig,
+      lastTestStatus: result.status,
+      status: result.status === 'Working' ? 'online' : (result.status === 'Not Tested' ? 'untested' : 'error'),
+      latency: result.latency,
+      latencyMs: result.latency,
+      lastTestedAt: new Date().toISOString(),
+      errorMessage: result.success ? undefined : result.message,
+    };
 
-      const updatedModel: AIModelConfig = {
-        ...modelConfig,
-        status: 'online',
-        latencyMs,
-        lastTestedAt: new Date().toISOString(),
-        errorMessage: undefined,
-      };
-      db.saveModel(updatedModel);
-      db.addLog('success', 'AI', `Model ${modelConfig.name} passed test (${latencyMs}ms): ${responseText.slice(0, 60)}`);
-
-      return {
-        success: true,
-        modelId: modelConfig.id,
-        modelName: modelConfig.modelName,
-        latencyMs,
-        message: `Connection successful! Model responded in ${(latencyMs / 1000).toFixed(2)}s`,
-        sampleResponse: responseText.trim(),
-        status: 'online',
-      };
-    } catch (err: any) {
-      const latencyMs = Date.now() - start;
-      const errorMsg = err.message || 'Unknown error occurred';
-
-      let userMsg = errorMsg;
-      if (errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('auth') || errorMsg.includes('API key')) {
-        userMsg = '✕ API key invalid or unauthorized (HTTP 401/403)';
-      } else if (errorMsg.includes('404') || errorMsg.includes('not found') || errorMsg.includes('model')) {
-        userMsg = `✕ Model "${modelConfig.modelName}" unavailable or invalid endpoint`;
-      } else if (errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('rate limit')) {
-        userMsg = '✕ Rate limit or quota exceeded (HTTP 429)';
-      }
-
-      const updatedModel: AIModelConfig = {
-        ...modelConfig,
-        status: 'error',
-        latencyMs,
-        lastTestedAt: new Date().toISOString(),
-        errorMessage: userMsg,
-      };
-      db.saveModel(updatedModel);
-      db.addLog('error', 'AI', `Model ${modelConfig.name} test failed: ${userMsg}`);
-
-      return {
-        success: false,
-        modelId: modelConfig.id,
-        modelName: modelConfig.modelName,
-        latencyMs,
-        message: userMsg,
-        status: 'error',
-      };
+    if (result.resolvedEndpoint) {
+      updatedModel.endpoint = result.resolvedEndpoint;
     }
+
+    db.saveModel(updatedModel);
+
+    if (result.success) {
+      db.addLog('success', 'AI', `Model ${updatedModel.providerName || updatedModel.name} passed test (${result.latency}ms): ${result.sampleResponse || 'OK'}`);
+    } else {
+      db.addLog('error', 'AI', `Model ${updatedModel.providerName || updatedModel.name} test failed: ${result.message}`);
+    }
+
+    return {
+      ...result,
+      modelId: modelConfig.id,
+      modelName: modelConfig.modelName,
+      latencyMs: result.latency,
+    };
   }
 
   /**
-   * Execute a prompt using the specified task's configured model, with fallback support
+   * Execute a prompt using the specified task's configured model, with multi-level failover support
+   * (Primary Model -> Fallback Model 1 -> Fallback Model 2)
    */
   public static async executeForTask(
     task: keyof TaskModelAssignments,
@@ -86,216 +57,89 @@ export class AIModelManager {
     customSystemPrompt?: string
   ): Promise<{ text: string; modelUsed: string; fallbackUsed: boolean }> {
     const assignments = db.getTaskAssignments();
-    const primaryModelId = (assignments[task] as string) || assignments.generalMarketing || 'gemini-flash';
     const models = db.getModels();
 
-    let primaryModel = models.find(m => m.id === primaryModelId && m.isEnabled);
+    // 1. Determine Primary Model ID:
+    // Task-specific assignment takes first priority; if none, check primaryModelId, generalMarketing, or default model.
+    const taskSpecificModelId = (assignments[task] as string) || '';
+    const preferredId = taskSpecificModelId || assignments.primaryModelId || assignments.generalMarketing || '';
+
+    let primaryModel = models.find(m => m.id === preferredId && (m.enabled ?? m.isEnabled));
     if (!primaryModel) {
-      // Fallback to any enabled model or default
-      primaryModel = models.find(m => m.isDefault && m.isEnabled) || models.find(m => m.isEnabled);
+      // Fall back to designated default model
+      primaryModel = models.find(m => m.isDefault && (m.enabled ?? m.isEnabled));
+    }
+    if (!primaryModel) {
+      // Fall back to any enabled model
+      primaryModel = models.find(m => (m.enabled ?? m.isEnabled));
     }
 
     if (!primaryModel) {
-      throw new Error('No AI model is currently enabled. Please enable or add a model in AI Settings.');
+      throw new Error('No AI model is currently enabled. Please add or enable an AI model in AI Settings.');
     }
 
     const sysPrompt = customSystemPrompt || primaryModel.systemPrompt;
+    const primaryName = primaryModel.providerName || primaryModel.name || primaryModel.modelName;
 
     // Try primary model
     try {
       const text = await this.invokeModelDirect(primaryModel, prompt, sysPrompt);
-      return { text, modelUsed: primaryModel.name, fallbackUsed: false };
+      return { text, modelUsed: primaryName, fallbackUsed: false };
     } catch (primaryErr: any) {
-      db.addLog('warn', 'AI', `Primary model "${primaryModel.name}" failed: ${primaryErr.message}`);
+      db.addLog('warn', 'AI', `Primary model "${primaryName}" failed: ${primaryErr.message}`);
 
       // Check if fallback is enabled
-      if (assignments.enableFallback && assignments.fallbackModelId && assignments.fallbackModelId !== primaryModel.id) {
-        const fallbackModel = models.find(m => m.id === assignments.fallbackModelId && m.isEnabled);
-        if (fallbackModel) {
-          db.addLog('info', 'AI', `Attempting fallback model: "${fallbackModel.name}"`);
-          try {
-            const fallbackText = await this.invokeModelDirect(fallbackModel, prompt, sysPrompt);
-            db.addLog('success', 'AI', `Fallback model "${fallbackModel.name}" succeeded`);
-            return { text: fallbackText, modelUsed: fallbackModel.name, fallbackUsed: true };
-          } catch (fallbackErr: any) {
-            db.addLog('error', 'AI', `Fallback model "${fallbackModel.name}" also failed: ${fallbackErr.message}`);
+      if (assignments.enableFallback) {
+        // --- Fallback Candidate 1 ---
+        const fb1Id = assignments.fallbackModelId;
+        if (fb1Id && fb1Id !== primaryModel.id) {
+          const fallback1 = models.find(m => m.id === fb1Id && (m.enabled ?? m.isEnabled));
+          if (fallback1) {
+            const fb1Name = fallback1.providerName || fallback1.name || fallback1.modelName;
+            db.addLog('info', 'AI', `Primary failed. Attempting Fallback 1: "${fb1Name}"`);
+            try {
+              const text1 = await this.invokeModelDirect(fallback1, prompt, sysPrompt);
+              db.addLog('success', 'AI', `Fallback 1 "${fb1Name}" succeeded`);
+              return { text: text1, modelUsed: `${fb1Name} (Fallback 1)`, fallbackUsed: true };
+            } catch (fb1Err: any) {
+              db.addLog('warn', 'AI', `Fallback 1 "${fb1Name}" failed: ${fb1Err.message}`);
+            }
+          }
+        }
+
+        // --- Fallback Candidate 2 ---
+        const fb2Id = assignments.fallbackModel2Id;
+        if (fb2Id && fb2Id !== primaryModel.id && fb2Id !== assignments.fallbackModelId) {
+          const fallback2 = models.find(m => m.id === fb2Id && (m.enabled ?? m.isEnabled));
+          if (fallback2) {
+            const fb2Name = fallback2.providerName || fallback2.name || fallback2.modelName;
+            db.addLog('info', 'AI', `Fallback 1 failed. Attempting Fallback 2: "${fb2Name}"`);
+            try {
+              const text2 = await this.invokeModelDirect(fallback2, prompt, sysPrompt);
+              db.addLog('success', 'AI', `Fallback 2 "${fb2Name}" succeeded`);
+              return { text: text2, modelUsed: `${fb2Name} (Fallback 2)`, fallbackUsed: true };
+            } catch (fb2Err: any) {
+              db.addLog('error', 'AI', `Fallback 2 "${fb2Name}" also failed: ${fb2Err.message}`);
+            }
           }
         }
       }
 
-      // If all failed, provide rich mock fallback response if in test environment or throw
-      throw primaryErr;
+      // If all attempts failed, throw the primary error with actionable guidance
+      throw new Error(`AI generation failed with ${primaryName}: ${primaryErr.message}`);
     }
   }
 
   /**
-   * Low-level dispatcher to invoke any AI provider
+   * Dispatches model prompt generation to the appropriate adapter
    */
   public static async invokeModelDirect(
     model: AIModelConfig,
     prompt: string,
     systemPrompt?: string
   ): Promise<string> {
-    const effectiveSystemPrompt = systemPrompt || model.systemPrompt || '';
-
-    // 1. Gemini Provider
-    if (model.provider === 'gemini') {
-      const apiKey = model.apiKey || process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        throw new Error('Gemini API key is required. Please set it in model settings.');
-      }
-      const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
-        model: model.modelName || 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-          systemInstruction: effectiveSystemPrompt || undefined,
-          temperature: model.temperature ?? 0.7,
-          maxOutputTokens: model.maxTokens || 2048,
-        },
-      });
-      return response.text || '';
-    }
-
-    // 2. Anthropic Provider
-    if (model.provider === 'anthropic') {
-      if (!model.apiKey) throw new Error('Anthropic API key is missing');
-      const url = `${model.baseUrl || 'https://api.anthropic.com/v1'}${model.endpoint || '/messages'}`;
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': model.apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: model.modelName || 'claude-3-5-sonnet-20241022',
-          system: effectiveSystemPrompt,
-          messages: [{ role: 'user', content: prompt }],
-          temperature: model.temperature ?? 0.7,
-          max_tokens: model.maxTokens || 2048,
-        }),
-        signal: AbortSignal.timeout(25000),
-      });
-
-      if (!resp.ok) {
-        throw new Error(`Anthropic error (${resp.status}): ${await resp.text()}`);
-      }
-      const data = await resp.json();
-      return data.content?.[0]?.text || '';
-    }
-
-    // 3. Custom REST API with Template
-    if (model.provider === 'custom' && model.requestTemplate) {
-      return this.invokeCustomTemplateModel(model, prompt, effectiveSystemPrompt);
-    }
-
-    // 4. OpenAI & OpenAI-Compatible (OpenAI, Groq, DeepSeek, OpenRouter, Mistral)
-    const baseUrl = (model.baseUrl || 'https://api.openai.com/v1').replace(/\/$/, '');
-    const endpoint = (model.endpoint || '/chat/completions').startsWith('/')
-      ? model.endpoint || '/chat/completions'
-      : `/${model.endpoint}`;
-    const targetUrl = `${baseUrl}${endpoint}`;
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-
-    if (model.authHeaderType === 'Bearer' && model.apiKey) {
-      headers['Authorization'] = `Bearer ${model.apiKey}`;
-    } else if (model.authHeaderType === 'x-api-key' && model.apiKey) {
-      headers['x-api-key'] = model.apiKey;
-    } else if (model.customHeaders) {
-      Object.assign(headers, model.customHeaders);
-    }
-
-    const messages = [];
-    if (effectiveSystemPrompt) {
-      messages.push({ role: 'system', content: effectiveSystemPrompt });
-    }
-    messages.push({ role: 'user', content: prompt });
-
-    const body = {
-      model: model.modelName,
-      messages,
-      temperature: model.temperature ?? 0.7,
-      max_tokens: model.maxTokens || 2048,
-    };
-
-    const resp = await fetch(targetUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(25000),
-    });
-
-    if (!resp.ok) {
-      const errText = await resp.text();
-      throw new Error(`Model API error (${resp.status}): ${errText}`);
-    }
-
-    const json = await resp.json();
-    return json.choices?.[0]?.message?.content || '';
-  }
-
-  /**
-   * Handles custom templated APIs with dynamic JSON path resolution
-   */
-  private static async invokeCustomTemplateModel(
-    model: AIModelConfig,
-    prompt: string,
-    systemPrompt: string
-  ): Promise<string> {
-    const baseUrl = (model.baseUrl || '').replace(/\/$/, '');
-    const endpoint = (model.endpoint || '').startsWith('/') ? model.endpoint : `/${model.endpoint}`;
-    const targetUrl = `${baseUrl}${endpoint}`;
-
-    let renderedTemplate = model.requestTemplate || '{}';
-    renderedTemplate = renderedTemplate
-      .replace(/{{model}}/g, model.modelName)
-      .replace(/{{systemPrompt}}/g, JSON.stringify(systemPrompt).slice(1, -1))
-      .replace(/{{prompt}}/g, JSON.stringify(prompt).slice(1, -1))
-      .replace(/{{temperature}}/g, String(model.temperature ?? 0.7))
-      .replace(/{{maxTokens}}/g, String(model.maxTokens ?? 2048));
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (model.apiKey) {
-      headers['Authorization'] = `Bearer ${model.apiKey}`;
-    }
-    if (model.customHeaders) {
-      Object.assign(headers, model.customHeaders);
-    }
-
-    const resp = await fetch(targetUrl, {
-      method: 'POST',
-      headers,
-      body: renderedTemplate,
-      signal: AbortSignal.timeout(25000),
-    });
-
-    if (!resp.ok) {
-      throw new Error(`Custom API returned ${resp.status}: ${await resp.text()}`);
-    }
-
-    const data = await resp.json();
-    const path = model.responsePath || 'choices[0].message.content';
-    return this.resolvePath(data, path) || JSON.stringify(data);
-  }
-
-  private static resolvePath(obj: any, path: string): string {
-    try {
-      const keys = path.replace(/\[(\w+)\]/g, '.$1').replace(/^\./, '').split('.');
-      let cur = obj;
-      for (const k of keys) {
-        if (cur === undefined || cur === null) return '';
-        cur = cur[k];
-      }
-      return typeof cur === 'string' ? cur : JSON.stringify(cur);
-    } catch {
-      return '';
-    }
+    const adapter = AdapterRegistry.getAdapter(model);
+    return adapter.generate(model, prompt, systemPrompt);
   }
 
   /**

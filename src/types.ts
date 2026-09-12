@@ -64,40 +64,51 @@ export interface Product {
   };
 }
 
-export type AIProviderType = 'openai' | 'gemini' | 'anthropic' | 'groq' | 'deepseek' | 'openrouter' | 'mistral' | 'custom';
+export type AIProviderType = 'openai' | 'gemini' | 'anthropic' | 'groq' | 'deepseek' | 'openrouter' | 'mistral' | 'together' | 'custom' | string;
+
+export type AIHealthStatus = 'Working' | 'Not Tested' | 'Failed' | 'Disabled' | 'Rate Limited' | 'Authentication Failed';
 
 export interface AIModelConfig {
   id: string;
-  name: string;
-  provider: AIProviderType;
+  providerName: string; // e.g. "DeepSeek"
+  name?: string; // backwards compatibility alias for providerName
+  provider?: AIProviderType; // backwards compatibility
   baseUrl: string;
-  endpoint: string;
-  apiKey: string;
-  modelName: string;
-  authHeaderType: 'Bearer' | 'x-api-key' | 'none' | 'custom';
+  endpoint?: string;
+  apiKey: string; // Securely stored, masked in client responses (e.g. sk-••••••••1234)
+  modelName: string; // e.g. "deepseek-chat"
+  apiType?: 'openai-compatible' | 'gemini' | 'anthropic' | 'custom' | string;
+  authHeaderType?: 'Bearer' | 'x-api-key' | 'none' | 'custom';
   customHeaders?: Record<string, string>;
   requestTemplate?: string; // JSON string template
-  responsePath?: string; // e.g. "choices[0].message.content" or "candidates[0].content.parts[0].text"
-  temperature: number;
-  maxTokens: number;
-  systemPrompt: string;
-  latencyMs?: number;
+  responsePath?: string; // e.g. "choices[0].message.content"
+  temperature?: number;
+  maxTokens?: number;
+  systemPrompt?: string;
+  latency?: number; // In milliseconds
+  latencyMs?: number; // backwards compatibility
   lastTestedAt?: string;
-  status: 'online' | 'error' | 'untested';
+  lastTestStatus?: AIHealthStatus;
+  status?: 'online' | 'error' | 'untested'; // backwards compatibility
   errorMessage?: string;
+  enabled?: boolean;
   isEnabled: boolean;
   isDefault?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface TaskModelAssignments {
   productAnalysis: string; // model ID
-  facebookCaption: string;
-  youtubeContent: string;
-  tiktokContent: string;
-  videoScript: string;
-  imagePrompt: string;
-  generalMarketing: string;
-  fallbackModelId?: string;
+  facebookCaption: string; // Facebook Post Model
+  youtubeContent: string; // YouTube Model
+  tiktokContent: string; // TikTok Model
+  videoScript: string; // Video Script Model
+  imagePrompt?: string;
+  generalMarketing?: string;
+  primaryModelId?: string; // Failover Primary Model
+  fallbackModelId?: string; // Fallback Model 1
+  fallbackModel2Id?: string; // Fallback Model 2
   enableFallback: boolean;
 }
 

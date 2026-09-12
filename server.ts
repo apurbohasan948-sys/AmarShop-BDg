@@ -175,6 +175,42 @@ app.delete('/api/ai/models/:id', (req, res) => {
   res.json({ success: true });
 });
 
+app.post('/api/ai/save-and-test', async (req, res) => {
+  try {
+    let model = req.body;
+    // If editing and key was masked or blank, retrieve previous key
+    if (model.id && (!model.apiKey || model.apiKey.includes('••••'))) {
+      const existing = db.getModelById(model.id);
+      if (existing) {
+        model.apiKey = existing.apiKey;
+      }
+    }
+
+    // Persist model in database first
+    const saved = db.saveModel(model);
+
+    // Test model using its persistent configuration
+    const testResult = await AIModelManager.testModel(saved);
+
+    // Return the updated model (masked) and test result
+    const masked = {
+      ...saved,
+      lastTestStatus: testResult.status,
+      latency: testResult.latency,
+      latencyMs: testResult.latency,
+      apiKey: saved.apiKey ? `${saved.apiKey.slice(0, 4)}••••••••` : '',
+      hasKey: !!saved.apiKey,
+    };
+
+    res.json({
+      model: masked,
+      testResult,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to save and test model' });
+  }
+});
+
 app.post('/api/ai/test', async (req, res) => {
   let model = req.body;
   if (model.id && (!model.apiKey || model.apiKey.includes('••••'))) {
