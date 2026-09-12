@@ -1,0 +1,643 @@
+{
+  "products": [
+    {
+      "id": "shopbase-ultrawatch-9",
+      "source": "ShopBase BD",
+      "sourceUrl": "https://shopbasebd.com/store/product/t900-ultra-smart-watch",
+      "productId": "SB-W9-ULTRA",
+      "sku": "SKU-SB-9001",
+      "title": "T900 Ultra Big 2.09\" Display Smartwatch with Bluetooth Calling",
+      "description": "T900 Ultra is a premium smartwatch featuring a 2.09-inch HD display, continuous heart-rate & SpO2 tracking, multiple sports modes, wireless magnetic charging, and seamless Bluetooth calling for Android & iOS.",
+      "category": "Smartwatches & Wearables",
+      "price": 950,
+      "originalPrice": 1550,
+      "profit": 250,
+      "sellingPrice": 1200,
+      "currency": "BDT",
+      "features": [
+        "2.09 inch Infinite HD Full Touch Screen",
+        "Bluetooth Calling & Notification Sync",
+        "Heart Rate, Blood Pressure & Sleep Monitor",
+        "IP67 Water Resistant & Sturdy Zinc Alloy Case",
+        "Wireless Magnetic Fast Charging (Up to 3-5 days standby)"
+      ],
+      "variations": [
+        {
+          "id": "v1",
+          "name": "Color",
+          "options": [
+            "Orange Strap",
+            "Black Strap",
+            "Silver Starlight"
+          ]
+        }
+      ],
+      "images": [
+        {
+          "id": "img1",
+          "originalImageUrl": "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?q=80&w=1920&auto=format&fit=crop",
+          "highResolutionImageUrl": "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?q=80&w=1920&auto=format&fit=crop",
+          "width": 1920,
+          "height": 1920,
+          "format": "JPEG",
+          "fileSize": "412 KB",
+          "qualityScore": 96,
+          "label": "Front Product Shot",
+          "isSelected": true
+        },
+        {
+          "id": "img2",
+          "originalImageUrl": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1920&auto=format&fit=crop",
+          "highResolutionImageUrl": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1920&auto=format&fit=crop",
+          "width": 1920,
+          "height": 1440,
+          "format": "JPEG",
+          "fileSize": "345 KB",
+          "qualityScore": 92,
+          "label": "Lifestyle Wrist View",
+          "isSelected": true
+        },
+        {
+          "id": "img3",
+          "originalImageUrl": "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?q=80&w=1920&auto=format&fit=crop",
+          "highResolutionImageUrl": "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?q=80&w=1920&auto=format&fit=crop",
+          "width": 1920,
+          "height": 1280,
+          "format": "JPEG",
+          "fileSize": "298 KB",
+          "qualityScore": 88,
+          "label": "Packaging & Details",
+          "isSelected": true
+        }
+      ],
+      "videos": [],
+      "availability": "in_stock",
+      "sourceCollectedAt": "2026-09-12T07:07:23.770Z",
+      "updatedAt": "2026-09-12T07:07:23.770Z",
+      "contentStatus": "creatives_generated",
+      "publishingStatus": "in_queue",
+      "tavilyResearch": {
+        "query": "T900 Ultra Smartwatch Bangladesh price reviews and trend 2026",
+        "summary": "Smartwatches with big 2.0+ inch displays and Bluetooth calling are currently trending on TikTok and Daraz in Bangladesh among college students and young professionals who want an Apple Watch Ultra aesthetic under 1,500 BDT.",
+        "trends": [
+          "Budget Apple Watch Ultra lookalike",
+          "Cash on delivery demand in BD",
+          "Fast Bluetooth sync with Bangla notification support"
+        ],
+        "keywords": [
+          "T900 Ultra BD price",
+          "best budget smartwatch 2026",
+          "smartwatch with bluetooth call bangladesh"
+        ],
+        "researchedAt": "2026-09-12T07:07:23.770Z"
+      },
+      "aiAnalysis": {
+        "summary": "একটি ট্রেন্ডি ও প্রিমিয়াম ডিজাইনের স্মার্টওয়াচ যা ব্লুটুথ কলিং এবং হেলথ ট্র্যাকিং সুবিধা নিশ্চিত করে অত্যন্ত সাশ্রয়ী দামে।",
+        "keySellingPoints": [
+          "হাতে পরে কথা বলার দারুণ ব্লুটুথ কলিং অভিজ্ঞতা",
+          "বিশাল ২.০৯ ইঞ্চি ফুল এইচডি ডিসপ্লে",
+          "ক্যাশ অন ডেলিভারিতে সারাদেশে দ্রুত হোম ডেলিভারি"
+        ],
+        "targetCustomer": "তরুণ প্রজন্ম, শিক্ষার্থী এবং গ্যাজেট প্রেমী যারা সাশ্রয়ী মূল্যে প্রিমিয়াম লুক খুঁজছেন।",
+        "marketingAngle": "স্টাইল ও প্রযুক্তির সেরা মেলবন্ধন - বাজেটের মধ্যেই আল্ট্রা প্রিমিয়াম স্মার্টওয়াচ!",
+        "shortHook": "১,৫০০ টাকার কমে প্রিমিয়াম আল্ট্রা স্মার্টওয়াচ খুঁজছেন? দেখুন এই অফার!",
+        "benefits": [
+          "ফোনে হাত না দিয়েই সরাসরি কল রিসিভ ও কথা বলুন",
+          "হার্ট রেট, রক্তচাপ ও স্লিপ ট্র্যাকিং দিয়ে রাখুন স্বাস্থ্যের হিসাব",
+          "স্মার্ট লুক যেকোনো পোশাকে মানানসই"
+        ],
+        "cta": "অফারটি সীমিত সময়ের জন্য! এখনই \"Shop Now\" বাটনে ক্লিক করুন অথবা মেসেজ দিন।",
+        "keywords": [
+          "T900 Ultra BD",
+          "Smart Watch Bangladesh",
+          "Budget Gadget BD",
+          "ShopBase BD"
+        ],
+        "hashtags": [
+          "#T900Ultra",
+          "#SmartWatchBD",
+          "#GadgetBD",
+          "#ShopBaseBD",
+          "#Smartwatch2026"
+        ],
+        "modelUsed": "gemini-2.5-flash",
+        "generatedAt": "2026-09-12T07:07:23.770Z"
+      }
+    },
+    {
+      "id": "shopbase-anc-earbuds-pro",
+      "source": "ShopBase BD",
+      "sourceUrl": "https://shopbasebd.com/store/product/m10-tws-wireless-earbuds",
+      "productId": "SB-M10-TWS",
+      "sku": "SKU-SB-4082",
+      "title": "M10 TWS Wireless Earbuds with 2000mAh Powerbank LED Display",
+      "description": "M10 TWS Bluetooth 5.3 Earbuds with heavy bass stereo sound, touch control, noise cancellation, waterproof casing, and dual 2000mAh emergency mobile powerbank charging case.",
+      "category": "Audio & Earphones",
+      "price": 450,
+      "originalPrice": 850,
+      "profit": 200,
+      "sellingPrice": 650,
+      "currency": "BDT",
+      "features": [
+        "HiFi 9D Heavy Bass Sound Quality",
+        "2000mAh Emergency Power Bank Charging Box",
+        "Dual LED Battery Percentage Display",
+        "Bluetooth 5.3 Quick Auto Pairing",
+        "Touch Control (Play, Pause, Call, Volume)"
+      ],
+      "variations": [
+        {
+          "id": "v2",
+          "name": "Version",
+          "options": [
+            "M10 Classic Black LED",
+            "M10 Pro Carbon"
+          ]
+        }
+      ],
+      "images": [
+        {
+          "id": "img4",
+          "originalImageUrl": "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=1920&auto=format&fit=crop",
+          "highResolutionImageUrl": "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=1920&auto=format&fit=crop",
+          "width": 1920,
+          "height": 1920,
+          "format": "JPEG",
+          "fileSize": "380 KB",
+          "qualityScore": 95,
+          "label": "Earbuds Case & Display",
+          "isSelected": true
+        },
+        {
+          "id": "img5",
+          "originalImageUrl": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1920&auto=format&fit=crop",
+          "highResolutionImageUrl": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1920&auto=format&fit=crop",
+          "width": 1920,
+          "height": 1280,
+          "format": "JPEG",
+          "fileSize": "310 KB",
+          "qualityScore": 90,
+          "label": "Sound & Texture Detail",
+          "isSelected": true
+        }
+      ],
+      "videos": [],
+      "availability": "in_stock",
+      "sourceCollectedAt": "2026-09-12T07:07:23.770Z",
+      "updatedAt": "2026-09-12T07:07:23.770Z",
+      "contentStatus": "analyzed",
+      "publishingStatus": "unprocessed",
+      "tavilyResearch": {
+        "query": "M10 TWS earbuds sound quality Bangladesh consumer review",
+        "summary": "M10 is one of the highest selling wireless earphones in Bangladesh due to its double utility: powerful music sound + emergency phone charging.",
+        "trends": [
+          "Budget TWS under 700 Taka",
+          "Gaming low latency",
+          "Long battery life"
+        ],
+        "keywords": [
+          "M10 TWS price in BD",
+          "wireless earphone low price",
+          "bluetooth earphone bangladesh"
+        ],
+        "researchedAt": "2026-09-12T07:07:23.770Z"
+      },
+      "aiAnalysis": {
+        "summary": "অসম্ভব ক্লিয়ার সাউন্ড আর ৯ডি বেস সহ M10 TWS ইয়ারবাডস, যাতে রয়েছে ইমার্জেন্সি মোবাইল চার্জিং সুবিধা!",
+        "keySellingPoints": [
+          "৯ডি সুপার হেভি বেস মিউজিক কোয়ালিটি",
+          "চার্জিং কেস দিয়েই ফোন চার্জ করার ইমার্জেন্সি পাওয়ারব্যাংক",
+          "এলইডি ডিসপ্লেতে দেখা যাবে চার্জের শতকরা পরিমাণ"
+        ],
+        "targetCustomer": "মিউজিক লাভার, বাইকার ও শিক্ষার্থী যারা বাজেটবান্ধব সেরা ইয়ারবাডস খুঁজছেন।",
+        "marketingAngle": "গান শোনার পাশাপাশি ইমার্জেন্সিতে ফোন চার্জের দ্বৈত সুবিধা!",
+        "shortHook": "সাশ্রয়ী দামে সেরা বেস ও পাওয়ারব্যাংক সাপোর্ট পেতে এখনই দেখুন M10 TWS!",
+        "benefits": [
+          "তারের ঝামেলাহীন অটো কানেকশন",
+          "ঘাম ও পানি প্রতিরোধী ডিজাইন",
+          "এক চার্জেই দীর্ঘ সময় নিরবচ্ছিন্ন অডিও"
+        ],
+        "cta": "অর্ডার করতে ইনবক্স করুন অথবা ভিজিট করুন আমাদের ওয়েবসাইটে।",
+        "keywords": [
+          "M10 TWS",
+          "Earbuds BD",
+          "Wireless Earphone",
+          "ShopBase BD"
+        ],
+        "hashtags": [
+          "#M10Earbuds",
+          "#WirelessAudio",
+          "#GadgetsBangladesh",
+          "#ShopBaseBD"
+        ],
+        "modelUsed": "gemini-2.5-flash",
+        "generatedAt": "2026-09-12T07:07:23.770Z"
+      }
+    }
+  ],
+  "aiModels": [
+    {
+      "id": "gemini-flash",
+      "name": "Gemini 2.5 Flash",
+      "provider": "gemini",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "endpoint": "/models/gemini-2.5-flash:generateContent",
+      "apiKey": "AIzaSyDPW-IaklHU8SXFqSe9kp2-bjgPsSCc2AM",
+      "modelName": "gemini-2.5-flash",
+      "authHeaderType": "x-api-key",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "systemPrompt": "You are an elite e-commerce marketing strategist for ShopBase BD in Bangladesh. Generate authentic, high-converting product marketing in natural conversational Bangla.",
+      "status": "online",
+      "latencyMs": 420,
+      "lastTestedAt": "2026-09-12T07:07:23.770Z",
+      "isEnabled": true,
+      "isDefault": true
+    },
+    {
+      "id": "openai-gpt4o-mini",
+      "name": "OpenAI GPT-4o Mini",
+      "provider": "openai",
+      "baseUrl": "https://api.openai.com/v1",
+      "endpoint": "/chat/completions",
+      "apiKey": "",
+      "modelName": "gpt-4o-mini",
+      "authHeaderType": "Bearer",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "systemPrompt": "You are an expert social media copywriter specialized in Bangladeshi consumer behavior.",
+      "status": "untested",
+      "isEnabled": true
+    },
+    {
+      "id": "groq-llama3-70b",
+      "name": "Groq Llama 3.3 70B",
+      "provider": "groq",
+      "baseUrl": "https://api.groq.com/openai/v1",
+      "endpoint": "/chat/completions",
+      "apiKey": "",
+      "modelName": "llama-3.3-70b-versatile",
+      "authHeaderType": "Bearer",
+      "temperature": 0.6,
+      "maxTokens": 2048,
+      "systemPrompt": "Generate engaging short-form TikTok & Reel scripts with high retention hooks.",
+      "status": "untested",
+      "isEnabled": true
+    },
+    {
+      "id": "anthropic-claude",
+      "name": "Anthropic Claude 3.5 Sonnet",
+      "provider": "anthropic",
+      "baseUrl": "https://api.anthropic.com/v1",
+      "endpoint": "/messages",
+      "apiKey": "",
+      "modelName": "claude-3-5-sonnet-20241022",
+      "authHeaderType": "x-api-key",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "systemPrompt": "Create detailed product reviews, buyer objection handling, and YouTube descriptions.",
+      "status": "untested",
+      "isEnabled": false
+    },
+    {
+      "id": "deepseek-chat",
+      "name": "DeepSeek Chat (V3)",
+      "provider": "deepseek",
+      "baseUrl": "https://api.deepseek.com",
+      "endpoint": "/chat/completions",
+      "apiKey": "",
+      "modelName": "deepseek-chat",
+      "authHeaderType": "Bearer",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "systemPrompt": "Direct response copywriting for South Asian e-commerce products.",
+      "status": "untested",
+      "isEnabled": false
+    },
+    {
+      "id": "custom-rest-api",
+      "name": "Custom OpenAI-Compatible API",
+      "provider": "custom",
+      "baseUrl": "https://api.together.xyz/v1",
+      "endpoint": "/chat/completions",
+      "apiKey": "",
+      "modelName": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+      "authHeaderType": "Bearer",
+      "requestTemplate": "{\"model\": \"{{model}}\", \"messages\": [{\"role\": \"system\", \"content\": \"{{systemPrompt}}\"}, {\"role\": \"user\", \"content\": \"{{prompt}}\"}], \"temperature\": {{temperature}}, \"max_tokens\": {{maxTokens}}}",
+      "responsePath": "choices[0].message.content",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "systemPrompt": "E-commerce creative writer for video hooks and selling angles.",
+      "status": "untested",
+      "isEnabled": false
+    },
+    {
+      "providerName": "DeepSeek",
+      "baseUrl": "https://api.deepseek.com",
+      "modelName": "deepseek-chat",
+      "apiKey": "sk-invalidkey",
+      "lastTestStatus": "Authentication Failed",
+      "status": "error",
+      "latency": 104,
+      "latencyMs": 104,
+      "lastTestedAt": "2026-09-12T08:51:58.068Z",
+      "errorMessage": "✕ Invalid API Key or Unauthorized (401/403)",
+      "id": "model-1789203118068-7jnl1",
+      "name": "DeepSeek",
+      "apiType": "openai-compatible",
+      "authHeaderType": "Bearer",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "systemPrompt": "You are an e-commerce marketing expert for Bangladesh.",
+      "enabled": true,
+      "isEnabled": true,
+      "updatedAt": "2026-09-12T08:51:58.068Z",
+      "createdAt": "2026-09-12T08:51:58.068Z"
+    }
+  ],
+  "taskAssignments": {
+    "productAnalysis": "gemini-flash",
+    "facebookCaption": "gemini-flash",
+    "youtubeContent": "gemini-flash",
+    "tiktokContent": "groq-llama3-70b",
+    "videoScript": "groq-llama3-70b",
+    "imagePrompt": "gemini-flash",
+    "generalMarketing": "gemini-flash",
+    "fallbackModelId": "openai-gpt4o-mini",
+    "enableFallback": true
+  },
+  "tavily": {
+    "apiKey": "",
+    "searchDepth": "basic",
+    "maxResults": 5,
+    "includeAnswer": true,
+    "status": "not_configured"
+  },
+  "brand": {
+    "brandName": "ShopBase BD Gadget Hub",
+    "logoUrl": "https://shopbasebd.com/wp-content/uploads/2023/shopbase-logo.png",
+    "contactNumber": "+880 1700-000000",
+    "facebookPage": "https://facebook.com/ShopBaseBD",
+    "website": "https://shopbasebd.com",
+    "orderUrl": "https://shopbasebd.com/store",
+    "defaultCta": "অর্ডার করতে এখনই ইনবক্স করুন অথবা ওয়েবসাইটে ভিজিট করুন। সারা বাংলাদেশে ক্যাশ অন ডেলিভারি!",
+    "defaultProfit": 200,
+    "currency": "BDT",
+    "language": "Bangla"
+  },
+  "pricing": {
+    "strategy": "fixed",
+    "fixedProfit": 150,
+    "percentageProfit": 15,
+    "minProfit": 100,
+    "customFormula": "sourcePrice + 150"
+  },
+  "social": {
+    "facebook": {
+      "connected": false,
+      "pageName": "ShopBase Official BD",
+      "pageId": "1092837465",
+      "status": "not_configured"
+    },
+    "youtube": {
+      "connected": false,
+      "channelTitle": "ShopBase BD Tech",
+      "channelId": "UC_shopbasebd_tech",
+      "status": "not_configured"
+    },
+    "tiktok": {
+      "connected": false,
+      "accountName": "@shopbase.bd",
+      "status": "not_configured",
+      "permissionsNotice": "Requires TikTok Content Posting API permissions."
+    }
+  },
+  "queue": [
+    {
+      "id": "q-fb-1",
+      "productId": "shopbase-ultrawatch-9",
+      "productTitle": "T900 Ultra Big 2.09\" Display Smartwatch with Bluetooth Calling",
+      "platform": "facebook",
+      "contentType": "facebook_post",
+      "status": "approved",
+      "scheduledTime": "2026-09-12T09:07:23.770Z",
+      "aiModelUsed": "gemini-2.5-flash",
+      "tavilyResearchUsed": true,
+      "content": {
+        "title": "হাতে পরলেই প্রিমিয়াম লুক! T900 Ultra Smartwatch",
+        "caption": "🔥 হাতে পরলেই নজর কাড়বে প্রিমিয়াম লুক! নিয়ে নিন T900 Ultra Big 2.09\" Display Smartwatch!\n\n👉 কেন এই স্মার্টওয়াচটি সেরা পছন্দ?\n✅ ২.০৯ ইঞ্চি ফুল এইচডি সুপার ডিসপ্লে\n✅ ব্লুটুথ কলিং - ঘড়ি থেকেই কল রিসিভ ও ডায়াল করুন\n✅ হার্ট রেট, ব্লাড প্রেশার ও স্লিপ ট্র্যাকিং সেন্সর\n✅ পানি ও ধুলোবালি প্রতিরোধক IP67 ওয়াটার রেসিস্ট্যান্ট\n✅ ওয়্যারলেস ফাস্ট ম্যাগনেটিক চার্জিং\n\n💰 বিশেষ অফার মূল্য: মাত্র ১,২০০ টাকা! (নিয়মিত মূল্য: ১,৫৫০ টাকা)\n\n🚚 ক্যাশ অন ডেলিভারিতে পণ্য দেখে টাকা পরিশোধ করার সুবিধা!\n\n📩 অর্ডার করতে এখনই আপনার নাম, পূর্ণ ঠিকানা ও মোবাইল নম্বর সহ মেসেজ করুন অথবা কল করুন 01700-000000 নম্বরে।",
+        "hook": "১,৫০০ টাকার কমে প্রিমিয়াম আল্ট্রা স্মার্টওয়াচ খুঁজছেন?",
+        "sellingPriceText": "১,২০০ টাকা",
+        "featuresList": [
+          "2.09\" HD Display",
+          "Bluetooth Calling",
+          "Magnetic Fast Charger"
+        ],
+        "cta": "অর্ডার করতে ইনবক্স করুন এখনই!",
+        "hashtags": [
+          "#T900Ultra",
+          "#SmartWatchBD",
+          "#GadgetBD",
+          "#ShopBaseBD",
+          "#ViralWatch"
+        ],
+        "mediaUrls": [
+          "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?q=80&w=1920&auto=format&fit=crop"
+        ]
+      },
+      "createdAt": "2026-09-12T07:07:23.770Z",
+      "updatedAt": "2026-09-12T07:07:23.770Z"
+    },
+    {
+      "id": "q-reel-1",
+      "productId": "shopbase-ultrawatch-9",
+      "productTitle": "T900 Ultra Big 2.09\" Display Smartwatch",
+      "platform": "facebook",
+      "contentType": "facebook_reel",
+      "status": "draft",
+      "aiModelUsed": "gemini-2.5-flash",
+      "content": {
+        "title": "T900 Ultra 9:16 Short Video",
+        "caption": "এই ঘড়িটি হাতে না দেখলে বুঝবেন না এর প্রিমিয়াম ফিনিশ! 🔥 T900 Ultra Smartwatch মাত্র ১২০০ টাকায়! #ShopBaseBD #SmartWatch",
+        "hook": "১০০০ টাকার বাজেটে এতো প্রিমিয়াম ফিচার কিভাবে সম্ভব?!",
+        "videoScript": "[Scene 1: 0-3s] Hook: \"আপনি কি ১,৫০০ টাকার মধ্যে সেরা লুকিং স্মার্টওয়াচ খুঁজছেন?\"\n[Scene 2: 3-8s] Displaying 2.09\" ultra HD screen and vibrant watch faces.\n[Scene 3: 8-12s] Demonstrating Bluetooth Calling and instant clear voice test.\n[Scene 4: 12-15s] CTA: \"সারা বাংলাদেশে ক্যাশ অন ডেলিভারি! আজই অর্ডার কনফার্ম করতে ডেসক্রিপশনের লিংকে যান।\"",
+        "mediaUrls": [
+          "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?q=80&w=1920&auto=format&fit=crop"
+        ],
+        "hashtags": [
+          "#T900Ultra",
+          "#ReelsBD",
+          "#GadgetVlog",
+          "#TrendingBD"
+        ],
+        "videoDurationSeconds": 15
+      },
+      "createdAt": "2026-09-12T07:07:23.770Z",
+      "updatedAt": "2026-09-12T07:07:23.770Z"
+    },
+    {
+      "id": "q-tiktok-1",
+      "productId": "shopbase-ultrawatch-9",
+      "productTitle": "T900 Ultra Big 2.09\" Display Smartwatch",
+      "platform": "tiktok",
+      "contentType": "tiktok_video",
+      "status": "draft",
+      "aiModelUsed": "groq-llama3-70b",
+      "content": {
+        "caption": "অবিশ্বাস্য ডিসকাউন্টে T900 Ultra স্মার্টওয়াচ! ব্লুটুথ কলিং + ফুল স্ক্রিন ডিসপ্লে 🔥 #TikTokBD #GadgetsBD #ShopBase",
+        "hook": "এই ঘড়িটি মিস করলে সত্যি লস করবেন!",
+        "videoScript": "00-03s: হ্যালো গ্যাজেট লাভার্স! এই বাজেট গ্যাজেটটি দেখলে আপনিও চমকে যাবেন!\n04-09s: বিশাল ২.০৯ ইঞ্চি স্ক্রিন আর অ্যাপল ওয়াচ আল্ট্রা ভাইব!\n10-15s: দেরি না করে এখনই অর্ডার করুন বায়ো লিংকে ক্লিক করে!",
+        "hashtags": [
+          "#GadgetBD",
+          "#TikTokShopBD",
+          "#T900Ultra",
+          "#Smartwatch"
+        ],
+        "mediaUrls": [
+          "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1920&auto=format&fit=crop"
+        ],
+        "videoDurationSeconds": 15
+      },
+      "createdAt": "2026-09-12T07:07:23.770Z",
+      "updatedAt": "2026-09-12T07:07:23.770Z"
+    }
+  ],
+  "automation": {
+    "autoCollect": false,
+    "autoGenerate": false,
+    "autoPost": false,
+    "intervalHours": 6,
+    "testMode": true,
+    "categoryFilters": [
+      "Smartwatches & Wearables",
+      "Audio & Earphones"
+    ],
+    "minQualityScore": 80,
+    "lastRunAt": "2026-09-12T08:51:33.089Z",
+    "nextRunAt": "2026-09-12T14:51:33.089Z"
+  },
+  "logs": [
+    {
+      "id": "log-1789203118069-387po",
+      "timestamp": "2026-09-12T08:51:58.069Z",
+      "level": "error",
+      "service": "AI",
+      "message": "Model DeepSeek test failed: ✕ Invalid API Key or Unauthorized (401/403)"
+    },
+    {
+      "id": "log-1789203106693-5y75p",
+      "timestamp": "2026-09-12T08:51:46.693Z",
+      "level": "error",
+      "service": "AI",
+      "message": "Model Custom test failed: ✕ Connection Failed (Network/Host Unreachable)"
+    },
+    {
+      "id": "log-1789203100435-j1sgr",
+      "timestamp": "2026-09-12T08:51:40.435Z",
+      "level": "error",
+      "service": "AI",
+      "message": "Model DeepSeek test failed: ✕ Invalid API Key or Unauthorized (401/403)"
+    },
+    {
+      "id": "log-1789203093088-sjxow",
+      "timestamp": "2026-09-12T08:51:33.088Z",
+      "level": "info",
+      "service": "Scheduler",
+      "message": "Automation background service started (interval check: 60s)"
+    },
+    {
+      "id": "log-1789200583117-dktik",
+      "timestamp": "2026-09-12T08:09:43.117Z",
+      "level": "info",
+      "service": "Scheduler",
+      "message": "Automation background service started (interval check: 60s)"
+    },
+    {
+      "id": "log-1789200572193-m8u9f",
+      "timestamp": "2026-09-12T08:09:32.193Z",
+      "level": "info",
+      "service": "Scheduler",
+      "message": "Automation background service started (interval check: 60s)"
+    },
+    {
+      "id": "log-1789198641990-tg357",
+      "timestamp": "2026-09-12T07:37:21.990Z",
+      "level": "info",
+      "service": "Scheduler",
+      "message": "Automation background service started (interval check: 60s)"
+    },
+    {
+      "id": "log-1789198638048-wfhup",
+      "timestamp": "2026-09-12T07:37:18.048Z",
+      "level": "info",
+      "service": "Scheduler",
+      "message": "Automation background service started (interval check: 60s)"
+    },
+    {
+      "id": "log-1789198068225-enh3l",
+      "timestamp": "2026-09-12T07:27:48.225Z",
+      "level": "info",
+      "service": "Scheduler",
+      "message": "Automation background service started (interval check: 60s)"
+    },
+    {
+      "id": "log-1789198065304-1llqi",
+      "timestamp": "2026-09-12T07:27:45.304Z",
+      "level": "info",
+      "service": "Scheduler",
+      "message": "Automation background service started (interval check: 60s)"
+    },
+    {
+      "id": "log-1789197687473-kch22",
+      "timestamp": "2026-09-12T07:21:27.473Z",
+      "level": "info",
+      "service": "Scheduler",
+      "message": "Automation background service started (interval check: 60s)"
+    },
+    {
+      "id": "log-1789197681779-bnhqj",
+      "timestamp": "2026-09-12T07:21:21.779Z",
+      "level": "info",
+      "service": "Scheduler",
+      "message": "Automation background service started (interval check: 60s)"
+    },
+    {
+      "id": "log-1789197191473-99y6j",
+      "timestamp": "2026-09-12T07:13:11.473Z",
+      "level": "info",
+      "service": "Scheduler",
+      "message": "Automation background service started (interval check: 60s)"
+    },
+    {
+      "id": "log-1789197177461-lbsha",
+      "timestamp": "2026-09-12T07:12:57.461Z",
+      "level": "info",
+      "service": "Scheduler",
+      "message": "Automation background service started (interval check: 60s)"
+    },
+    {
+      "id": "log-1789197166249-kk2vi",
+      "timestamp": "2026-09-12T07:12:46.249Z",
+      "level": "info",
+      "service": "Scheduler",
+      "message": "Automation background service started (interval check: 60s)"
+    },
+    {
+      "id": "log-1789196845097-fn3tz",
+      "timestamp": "2026-09-12T07:07:25.097Z",
+      "level": "info",
+      "service": "Scheduler",
+      "message": "Automation background service started (interval check: 60s)"
+    },
+    {
+      "id": "log-init",
+      "timestamp": "2026-09-12T07:07:23.771Z",
+      "level": "info",
+      "service": "Database",
+      "message": "ShopBase BD Automation Database Initialized with persistent storage."
+    }
+  ],
+  "duplicateHistory": {
+    "shopbase-ultrawatch-9_facebook_facebook_post": true
+  }
+}

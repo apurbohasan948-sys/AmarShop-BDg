@@ -22,7 +22,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { AIModelConfig, TaskModelAssignments, AIHealthStatus } from '../types';
-import { api } from '../api';
+import { api, SafeApiError, SafeFetchErrorDetails } from '../api';
 
 interface AIModelsTabProps {
   models: Array<AIModelConfig & { hasKey: boolean }>;
@@ -89,10 +89,11 @@ export const AIModelsTab: React.FC<AIModelsTabProps> = ({
   const [isSavingAndTesting, setIsSavingAndTesting] = useState(false);
   const [modalFeedback, setModalFeedback] = useState<{
     type: 'success' | 'error';
-    status?: AIHealthStatus;
+    status?: AIHealthStatus | string;
     message: string;
     latency?: number;
     sampleResponse?: string;
+    debugDetails?: SafeFetchErrorDetails;
   } | null>(null);
 
   // Task-specific assignment state & failover
@@ -171,12 +172,12 @@ export const AIModelsTab: React.FC<AIModelsTabProps> = ({
       const response = await api.saveAndTestAiModel(payload);
       const testResult = response.testResult;
 
-      if (testResult.success) {
+      if (testResult && testResult.success) {
         setModalFeedback({
           type: 'success',
           status: 'Working',
-          latency: testResult.latency,
-          message: testResult.message || `Connected successfully! Response time: ${testResult.latency}ms`,
+          latency: testResult.latency || testResult.latencyMs,
+          message: testResult.message || `Connected successfully! Response time: ${testResult.latency || testResult.latencyMs}ms`,
           sampleResponse: testResult.sampleResponse,
         });
         // Refresh parent list
@@ -189,17 +190,24 @@ export const AIModelsTab: React.FC<AIModelsTabProps> = ({
       } else {
         setModalFeedback({
           type: 'error',
-          status: testResult.status || 'Failed',
-          latency: testResult.latency,
-          message: testResult.message || 'Connection test failed. Please verify API key and Base URL.',
+          status: testResult?.status || 'Failed',
+          latency: testResult?.latency || testResult?.latencyMs,
+          message: testResult?.message || testResult?.error || 'Connection test failed. Please verify API key and Base URL.',
         });
         onRefresh();
       }
     } catch (err: any) {
+      const details: SafeFetchErrorDetails | undefined = err?.details;
+      const isHtml = details?.isHtml || (details?.preview && details.preview.toLowerCase().includes('<!doctype'));
+      const displayMessage = isHtml
+        ? 'Backend API route is returning HTML instead of JSON.'
+        : (err.message || 'Failed to save or test model.');
+
       setModalFeedback({
         type: 'error',
-        status: 'Failed',
-        message: err.message || 'Failed to save or test model.',
+        status: details?.status ? `HTTP ${details.status}` : 'Failed',
+        message: displayMessage,
+        debugDetails: details,
       });
     } finally {
       setIsSavingAndTesting(false);
@@ -216,12 +224,19 @@ export const AIModelsTab: React.FC<AIModelsTabProps> = ({
       setTestResults((prev) => ({ ...prev, [model.id]: result }));
       onRefresh();
     } catch (err: any) {
+      const details: SafeFetchErrorDetails | undefined = err?.details;
+      const isHtml = details?.isHtml || (details?.preview && details.preview.toLowerCase().includes('<!doctype'));
+      const displayMessage = isHtml
+        ? 'Backend API route is returning HTML instead of JSON.'
+        : (err.message || 'Test failed');
+
       setTestResults((prev) => ({
         ...prev,
         [model.id]: {
           success: false,
-          status: 'Failed',
-          message: err.message || 'Test failed',
+          status: details?.status ? `HTTP ${details.status}` : 'Failed',
+          message: displayMessage,
+          debugDetails: details,
         },
       }));
     } finally {
@@ -798,33 +813,70 @@ export const AIModelsTab: React.FC<AIModelsTabProps> = ({
               {modalFeedback && (
                 <div
                   id="modal-feedback-banner"
-                  className={`p-3 rounded-xl text-xs flex items-start space-x-2.5 ${
+                  className={`p-3.5 rounded-xl text-xs flex flex-col space-y-2.5 ${
                     modalFeedback.type === 'success'
                       ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
                       : 'bg-rose-500/15 border border-rose-500/30 text-rose-300'
                   }`}
                 >
-                  {modalFeedback.type === 'success' ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                  )}
-                  <div>
-                    <div className="font-bold flex items-center space-x-1.5">
-                      <span>{modalFeedback.status || (modalFeedback.type === 'success' ? 'Working' : 'Failed')}</span>
-                      {modalFeedback.latency && (
-                        <span className="text-[10px] font-mono text-cyan-300 font-normal">
-                          • {modalFeedback.latency}ms
-                        </span>
+                  <div className="flex items-start space-x-2.5">
+                    {modalFeedback.type === 'success' ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    )}
+                    <div className="flex-1">
+                      <div className="font-bold flex items-center space-x-1.5">
+                        <span>{modalFeedback.status || (modalFeedback.type === 'success' ? 'Working' : 'Failed')}</span>
+                        {modalFeedback.latency && (
+                          <span className="text-[10px] font-mono text-cyan-300 font-normal">
+                            • {modalFeedback.latency}ms
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-[11px] leading-relaxed opacity-90">{modalFeedback.message}</p>
+                      {modalFeedback.sampleResponse && (
+                        <p className="mt-1 text-[10px] font-mono text-slate-300 italic truncate max-w-sm">
+                          &quot;{modalFeedback.sampleResponse}&quot;
+                        </p>
                       )}
                     </div>
-                    <p className="mt-0.5 text-[11px] leading-relaxed opacity-90">{modalFeedback.message}</p>
-                    {modalFeedback.sampleResponse && (
-                      <p className="mt-1 text-[10px] font-mono text-slate-300 italic truncate max-w-sm">
-                        &quot;{modalFeedback.sampleResponse}&quot;
-                      </p>
-                    )}
                   </div>
+
+                  {/* Safe Response Debug Inspector (Safe Diagnostics - no secrets exposed) */}
+                  {modalFeedback.debugDetails && (
+                    <div className="mt-1 p-2.5 bg-slate-950/90 border border-slate-800/80 rounded-lg text-[10px] font-mono space-y-1.5 text-slate-300">
+                      <div className="flex justify-between items-center border-b border-slate-800/80 pb-1 text-slate-400 font-sans font-semibold">
+                        <span>API Response Diagnostics</span>
+                        {modalFeedback.debugDetails.isHtml && (
+                          <span className="text-amber-400 font-bold bg-amber-400/10 px-1.5 py-0.5 rounded">HTML Instead of JSON</span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 gap-1 pt-0.5">
+                        <span className="text-slate-500">HTTP Status:</span>
+                        <span className="col-span-2 font-semibold text-rose-300">
+                          {modalFeedback.debugDetails.status || 'Network / Refusal (0)'}
+                        </span>
+
+                        <span className="text-slate-500">Content-Type:</span>
+                        <span className="col-span-2 text-slate-300 truncate font-mono">
+                          {modalFeedback.debugDetails.contentType || 'none'}
+                        </span>
+
+                        <span className="text-slate-500">Request URL:</span>
+                        <span className="col-span-2 text-slate-300 truncate font-mono">
+                          {modalFeedback.debugDetails.url}
+                        </span>
+                      </div>
+
+                      <div className="pt-1">
+                        <span className="text-slate-500 block mb-1">First 300 Chars of Response:</span>
+                        <div className="bg-slate-900/90 p-2 rounded border border-slate-800/60 text-[9.5px] text-slate-200 max-h-24 overflow-y-auto whitespace-pre-wrap break-all select-all font-mono">
+                          {modalFeedback.debugDetails.preview || 'Empty response body'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -7,6 +7,7 @@ import { db } from './server/db';
 import { ShopBaseCollector } from './server/services/ShopBaseCollector';
 import { TavilyService } from './server/services/TavilyService';
 import { AIModelManager } from './server/services/AIModelManager';
+import { OpenAICompatibleAdapter } from './server/services/adapters/OpenAICompatibleAdapter';
 import { VideoGeneratorService } from './server/services/VideoGeneratorService';
 import { FacebookService, YouTubeService, TikTokService, SocialPublisherDispatcher } from './server/services/SocialServices';
 import { SchedulerService } from './server/services/SchedulerService';
@@ -149,86 +150,249 @@ app.post('/api/tavily/search', async (req, res) => {
   }
 });
 
-// --- MULTI-MODEL CLOUD AI SYSTEM ---
-app.get('/api/ai/models', (req, res) => {
-  const models = db.getModels().map(m => ({
-    ...m,
-    apiKey: m.apiKey ? `${m.apiKey.slice(0, 4)}••••••••` : '',
-    hasKey: !!m.apiKey,
-  }));
-  res.json(models);
-});
+// --- CLOUD AI MODELS SYSTEM (OpenAI-Compatible & Custom Providers) ---
+function maskApiKey(key?: string): string {
+  if (!key) return '';
+  const trimmed = key.trim();
+  if (trimmed.length <= 4) return '••••••••';
+  const last4 = trimmed.slice(-4);
+  return `••••••••${last4}`;
+}
 
-app.post('/api/ai/models', (req, res) => {
-  const model = req.body;
-  // If editing and key was masked, keep previous key
-  if (model.apiKey && model.apiKey.includes('••••')) {
-    const existing = db.getModelById(model.id);
-    if (existing) model.apiKey = existing.apiKey;
-  }
-  const saved = db.saveModel(model);
-  res.json({ ...saved, apiKey: saved.apiKey ? '••••••••' : '' });
-});
+function formatModelForClient(model: any) {
+  const isConfigured = !!(model.apiKey && model.apiKey.trim());
+  return {
+    ...model,
+    apiKey: isConfigured ? maskApiKey(model.apiKey) : '',
+    apiKeyConfigured: isConfigured,
+    hasKey: isConfigured,
+  };
+}
 
-app.delete('/api/ai/models/:id', (req, res) => {
-  db.deleteModel(req.params.id);
-  res.json({ success: true });
-});
-
-app.post('/api/ai/save-and-test', async (req, res) => {
+async function handleCloudModelSaveAndTest(req: express.Request, res: express.Response) {
+  res.setHeader('Content-Type', 'application/json');
   try {
-    let model = req.body;
-    // If editing and key was masked or blank, retrieve previous key
-    if (model.id && (!model.apiKey || model.apiKey.includes('••••'))) {
-      const existing = db.getModelById(model.id);
-      if (existing) {
-        model.apiKey = existing.apiKey;
+    const { providerName, name, apiKey, modelName, baseUrl, id, skipTest, isDefault, enabled, isEnabled } = req.body;
+    const effectiveProviderName = String(providerName || name || '').trim();
+    const effectiveModelName = String(modelName || '').trim();
+    const rawBaseUrl = String(baseUrl || '').trim();
+    let effectiveApiKey = String(apiKey || '').trim();
+    const modelId = id ? String(id).trim() : '';
+
+    // If editing an existing model and API key was omitted or masked, retrieve existing key from DB
+    let existingModel: any;
+    if (modelId) {
+      existingModel = db.getModelById(modelId);
+      if (existingModel && (!effectiveApiKey || effectiveApiKey.includes('••••'))) {
+        effectiveApiKey = existingModel.apiKey || '';
       }
     }
 
-    // Persist model in database first
-    const saved = db.saveModel(model);
+    // 1. Validation
+    if (!effectiveProviderName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Provider Name is required',
+        status: 400,
+      });
+    }
+    if (!effectiveModelName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Model Name is required',
+        status: 400,
+      });
+    }
+    if (!rawBaseUrl) {
+      return res.status(400).json({
+        success: false,
+        error: 'Base URL is required',
+        status: 400,
+      });
+    }
+    if (!effectiveApiKey) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid API key: API Key is required',
+        status: 400,
+      });
+    }
 
-    // Test model using its persistent configuration
-    const testResult = await AIModelManager.testModel(saved);
+    // 2. Intelligent Base URL normalization & OpenAI-compatible endpoint resolution
+    const { normalizedBaseUrl, chatEndpoint } = OpenAICompatibleAdapter.normalizeEndpoint(rawBaseUrl);
 
-    // Return the updated model (masked) and test result
-    const masked = {
-      ...saved,
-      lastTestStatus: testResult.status,
-      latency: testResult.latency,
-      latencyMs: testResult.latency,
-      apiKey: saved.apiKey ? `${saved.apiKey.slice(0, 4)}••••••••` : '',
-      hasKey: !!saved.apiKey,
+    const finalId = modelId || existingModel?.id || `cloud-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const isModelEnabled = enabled !== undefined
+      ? enabled
+      : (isEnabled !== undefined ? isEnabled : (existingModel?.enabled ?? true));
+
+    const candidateModel = {
+      ...existingModel,
+      id: finalId,
+      providerName: effectiveProviderName,
+      name: effectiveProviderName,
+      modelName: effectiveModelName,
+      baseUrl: normalizedBaseUrl,
+      endpoint: chatEndpoint,
+      apiKey: effectiveApiKey,
+      apiType: 'openai-compatible',
+      authHeaderType: 'Bearer',
+      temperature: req.body.temperature ?? existingModel?.temperature ?? 0.7,
+      maxTokens: req.body.maxTokens ?? existingModel?.maxTokens ?? 2048,
+      systemPrompt: req.body.systemPrompt || existingModel?.systemPrompt || 'You are an e-commerce marketing expert for Bangladesh.',
+      enabled: isModelEnabled,
+      isEnabled: isModelEnabled,
+      isDefault: isDefault !== undefined ? isDefault : (existingModel?.isDefault ?? false),
+      createdAt: existingModel?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
-    res.json({
-      model: masked,
-      testResult,
-    });
+    // If skipTest is explicitly set (e.g. metadata-only toggle or save)
+    if (skipTest) {
+      const saved = db.saveModel(candidateModel);
+      return res.status(200).json({
+        success: true,
+        message: 'Cloud model saved successfully',
+        model: formatModelForClient(saved),
+      });
+    }
+
+    // 3. Test the model using backend adapter
+    const testResult = await AIModelManager.testModel(candidateModel);
+
+    // 4. Save to persistent database if successful
+    if (testResult.success) {
+      const saved = db.saveModel({
+        ...candidateModel,
+        lastTestStatus: 'Working',
+        status: 'online',
+        latency: testResult.latency,
+        latencyMs: testResult.latency,
+        lastTestedAt: new Date().toISOString(),
+        errorMessage: undefined,
+        endpoint: testResult.resolvedEndpoint || candidateModel.endpoint,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Cloud model saved successfully',
+        model: formatModelForClient(saved),
+        testResult: {
+          success: true,
+          model: saved.modelName,
+          latencyMs: testResult.latency,
+          message: testResult.message,
+          sampleResponse: testResult.sampleResponse,
+        },
+      });
+    } else {
+      // If test failed, DO NOT save as working. Return JSON error with details
+      const statusCode = testResult.errorType === 'auth' ? 401 : (testResult.statusCode || 400);
+      return res.status(statusCode).json({
+        success: false,
+        error: testResult.message || 'Connection test failed',
+        status: statusCode,
+        latencyMs: testResult.latency,
+        testResult: {
+          success: false,
+          model: candidateModel.modelName,
+          latencyMs: testResult.latency,
+          message: testResult.message,
+          error: testResult.message,
+          status: statusCode,
+        },
+      });
+    }
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to save and test model' });
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Internal server error processing cloud model',
+      status: 500,
+    });
   }
+}
+
+async function handleCloudModelTest(req: express.Request, res: express.Response) {
+  res.setHeader('Content-Type', 'application/json');
+  try {
+    let model = req.body;
+    if (model.id && (!model.apiKey || model.apiKey.includes('••••'))) {
+      const existing = db.getModelById(model.id);
+      if (existing) {
+        model = { ...existing, ...model, apiKey: existing.apiKey };
+      }
+    }
+
+    if (!model.apiKey || model.apiKey.trim() === '') {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication failed: API key is missing',
+        status: 401,
+      });
+    }
+
+    const testResult = await AIModelManager.testModel(model);
+    if (testResult.success) {
+      return res.status(200).json({
+        success: true,
+        model: model.modelName || 'cloud-model',
+        latencyMs: testResult.latency,
+        status: 'Working',
+        message: testResult.message,
+        sampleResponse: testResult.sampleResponse,
+      });
+    } else {
+      const statusCode = testResult.errorType === 'auth' ? 401 : 400;
+      return res.status(statusCode).json({
+        success: false,
+        error: testResult.message || 'Authentication failed',
+        status: statusCode,
+        latencyMs: testResult.latency,
+      });
+    }
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Internal server error during model test',
+      status: 500,
+    });
+  }
+}
+
+// Routes: Primary Cloud Model endpoints
+app.post('/api/cloud-models', handleCloudModelSaveAndTest);
+app.get('/api/cloud-models', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.json(db.getModels().map(formatModelForClient));
+});
+app.post('/api/cloud-models/test', handleCloudModelTest);
+app.delete('/api/cloud-models/:id', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  const deleted = db.deleteModel(req.params.id);
+  res.json({ success: deleted, message: deleted ? 'Cloud model deleted successfully' : 'Model not found' });
 });
 
-app.post('/api/ai/test', async (req, res) => {
-  let model = req.body;
-  if (model.id && (!model.apiKey || model.apiKey.includes('••••'))) {
-    const existing = db.getModelById(model.id);
-    if (existing) {
-      model = { ...existing, ...model, apiKey: existing.apiKey };
-    }
-  }
-
-  const result = await AIModelManager.testModel(model);
-  res.json(result);
+// Legacy / Compatibility AI Model routes
+app.get('/api/ai/models', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.json(db.getModels().map(formatModelForClient));
+});
+app.post('/api/ai/models', handleCloudModelSaveAndTest);
+app.post('/api/ai/save-and-test', handleCloudModelSaveAndTest);
+app.post('/api/ai/test', handleCloudModelTest);
+app.delete('/api/ai/models/:id', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  const deleted = db.deleteModel(req.params.id);
+  res.json({ success: deleted });
 });
 
 app.get('/api/ai/tasks', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
   res.json(db.getTaskAssignments());
 });
 
 app.post('/api/ai/tasks', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
   const saved = db.saveTaskAssignments(req.body);
   res.json(saved);
 });
@@ -472,6 +636,16 @@ app.post('/api/apk/config', (req, res) => {
 
 // --- STARTUP & VITE MIDDLEWARE ---
 async function startServer() {
+  // CRITICAL: Prevent unhandled /api/* requests from returning index.html via Vite middleware
+  app.all('/api/*', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.status(404).json({
+      success: false,
+      error: `API route not found: ${req.method} ${req.originalUrl || req.url}`,
+      status: 404,
+    });
+  });
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },

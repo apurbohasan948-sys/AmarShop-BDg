@@ -15,6 +15,108 @@ import {
   ApkInfo,
 } from './types';
 
+export interface SafeFetchErrorDetails {
+  status: number;
+  contentType: string;
+  url: string;
+  preview: string;
+  isHtml: boolean;
+  userMessage: string;
+}
+
+export class SafeApiError extends Error {
+  public details: SafeFetchErrorDetails;
+
+  constructor(message: string, details: SafeFetchErrorDetails) {
+    super(message);
+    this.name = 'SafeApiError';
+    this.details = details;
+  }
+}
+
+/**
+ * Robust JSON fetch wrapper that verifies Content-Type, prevents HTML parse errors,
+ * captures diagnostic details, and sanitizes debug info.
+ */
+export async function safeFetchJson<T = any>(
+  url: string,
+  options?: RequestInit
+): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(url, options);
+  } catch (networkErr: any) {
+    throw new SafeApiError(
+      `Network request failed: ${networkErr.message || 'Connection refused'}`,
+      {
+        status: 0,
+        contentType: '',
+        url,
+        preview: networkErr.message || 'Network error',
+        isHtml: false,
+        userMessage: 'Network error connecting to backend service.',
+      }
+    );
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+
+  // Verify response is JSON before attempting to parse
+  if (!contentType.includes('application/json')) {
+    const text = await response.text();
+    const cleanPreview = text.slice(0, 300);
+    const isHtml = cleanPreview.trim().toLowerCase().startsWith('<!doctype') || cleanPreview.trim().toLowerCase().startsWith('<html');
+
+    const errorMsg = isHtml
+      ? 'Backend API route is returning HTML instead of JSON.'
+      : `Server returned non-JSON response (${response.status}): ${cleanPreview}`;
+
+    console.error(
+      `[Safe API Error] URL: ${url} | Status: ${response.status} | Content-Type: ${contentType} | Preview: ${cleanPreview}`
+    );
+
+    throw new SafeApiError(errorMsg, {
+      status: response.status,
+      contentType,
+      url,
+      preview: cleanPreview,
+      isHtml,
+      userMessage: errorMsg,
+    });
+  }
+
+  let data: any;
+  try {
+    data = await response.json();
+  } catch (jsonErr: any) {
+    throw new SafeApiError(`Failed to parse JSON response: ${jsonErr.message}`, {
+      status: response.status,
+      contentType,
+      url,
+      preview: 'Invalid JSON payload',
+      isHtml: false,
+      userMessage: 'Backend returned malformed JSON.',
+    });
+  }
+
+  if (!response.ok) {
+    const errorMsg = data?.error || data?.message || `Request failed with status ${response.status}`;
+    console.error(
+      `[Safe API Error] URL: ${url} | Status: ${response.status} | Error: ${errorMsg}`
+    );
+    throw new SafeApiError(errorMsg, {
+      status: response.status,
+      contentType,
+      url,
+      preview: JSON.stringify(data).slice(0, 300),
+      isHtml: false,
+      userMessage: errorMsg,
+    });
+  }
+
+  return data as T;
+}
+
 export const api = {
   // Dashboard
   getDashboardStats: async (): Promise<DashboardStats> => {
@@ -112,47 +214,56 @@ export const api = {
     return res.json();
   },
 
-  // AI Models
-  getAiModels: async (): Promise<Array<AIModelConfig & { hasKey: boolean }>> => {
-    const res = await fetch('/api/ai/models');
-    return res.json();
+  // Cloud AI Models
+  getAiModels: async (): Promise<Array<AIModelConfig & { hasKey: boolean; apiKeyConfigured?: boolean }>> => {
+    return safeFetchJson<Array<AIModelConfig & { hasKey: boolean; apiKeyConfigured?: boolean }>>('/api/cloud-models');
   },
 
   saveAiModel: async (model: Partial<AIModelConfig>): Promise<AIModelConfig> => {
-    const res = await fetch('/api/ai/models', {
+    const res = await safeFetchJson<{ success: boolean; model: AIModelConfig }>('/api/cloud-models', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(model),
+      body: JSON.stringify({ ...model, skipTest: true }),
     });
-    return res.json();
+    return res.model || (res as any);
   },
 
   deleteAiModel: async (id: string): Promise<{ success: boolean }> => {
-    const res = await fetch(`/api/ai/models/${id}`, { method: 'DELETE' });
-    return res.json();
+    return safeFetchJson<{ success: boolean }>(`/api/cloud-models/${id}`, { method: 'DELETE' });
   },
 
   testAiModel: async (model: Partial<AIModelConfig>): Promise<any> => {
-    const res = await fetch('/api/ai/test', {
+    return safeFetchJson('/api/cloud-models/test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(model),
     });
-    return res.json();
   },
 
-  saveAndTestAiModel: async (model: Partial<AIModelConfig>): Promise<{ model: AIModelConfig & { hasKey: boolean }; testResult: any }> => {
-    const res = await fetch('/api/ai/save-and-test', {
+  saveAndTestAiModel: async (model: Partial<AIModelConfig>): Promise<{
+    success: boolean;
+    message?: string;
+    model: AIModelConfig & { hasKey: boolean; apiKeyConfigured?: boolean };
+    testResult: any;
+  }> => {
+    return safeFetchJson<{
+      success: boolean;
+      message?: string;
+      model: AIModelConfig & { hasKey: boolean; apiKeyConfigured?: boolean };
+      testResult: any;
+    }>('/api/cloud-models', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(model),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Request failed' }));
-      throw new Error(err.error || 'Failed to save and test model');
-    }
-    return res.json();
   },
+
+  // Direct Cloud Model aliases
+  getCloudModels: async () => api.getAiModels(),
+  saveCloudModel: async (model: Partial<AIModelConfig>) => api.saveAiModel(model),
+  deleteCloudModel: async (id: string) => api.deleteAiModel(id),
+  testCloudModel: async (model: Partial<AIModelConfig>) => api.testAiModel(model),
+  saveAndTestCloudModel: async (model: Partial<AIModelConfig>) => api.saveAndTestAiModel(model),
 
   getTaskAssignments: async (): Promise<TaskModelAssignments> => {
     const res = await fetch('/api/ai/tasks');

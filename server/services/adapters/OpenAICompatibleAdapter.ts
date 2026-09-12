@@ -143,6 +143,7 @@ export class OpenAICompatibleAdapter implements AIProviderAdapter {
       latency,
       message: statusInfo.message,
       errorType: statusInfo.errorType,
+      statusCode: lastError?.statusCode,
     };
   }
 

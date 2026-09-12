@@ -7,6 +7,7 @@ export interface AdapterTestResult {
   message: string;
   sampleResponse?: string;
   resolvedEndpoint?: string;
+  statusCode?: number;
   errorType?: 'auth' | 'model' | 'rate_limit' | 'connection' | 'unknown';
 }
 
