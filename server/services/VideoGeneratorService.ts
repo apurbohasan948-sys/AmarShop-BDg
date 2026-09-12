@@ -1,146 +1,93 @@
-import { Product } from '../../src/types';
-import { db } from '../db';
+import { db } from '../db.js';
 
-export interface VideoRenderSpec {
-  id: string;
-  productId: string;
-  title: string;
-  durationSeconds: number; // 15, 30, 45, 60
-  aspectRatio: '9:16';
-  width: number;
-  height: number;
-  template: 'modern_reels' | 'bold_tiktok' | 'clean_shorts';
-  audioTrack: {
-    id: string;
-    title: string;
-    artist: string;
-    genre: string;
-    url: string;
-  };
-  scenes: Array<{
-    sceneIndex: number;
-    durationSeconds: number;
-    imageUrl: string;
-    overlayText: string;
-    overlaySubtext?: string;
-    badgeText?: string;
-    transition: 'fade' | 'slide_left' | 'zoom_in';
-  }>;
-  brandOverlay: {
-    name: string;
-    phone: string;
-    price: string;
-    cta: string;
-  };
+export interface VideoGenerateRequest {
+  productTitle: string;
+  productPrice?: number;
+  productImage: string;
+  platform: 'reels' | 'tiktok' | 'youtube' | 'facebook';
+  durationSeconds?: number;
 }
 
-export const ROYALTY_FREE_AUDIO_TRACKS = [
-  {
-    id: 'track-energetic-beat',
-    title: 'Upbeat Gadget Groove',
-    artist: 'ShopBase Beats (Royalty Free)',
-    genre: 'Lo-Fi Electronic',
-    url: 'https://cdn.freesound.org/previews/565/565123_11861866-lq.mp3',
-  },
-  {
-    id: 'track-viral-trap',
-    title: 'TikTok Viral Pulse',
-    artist: 'Audio Library License Free',
-    genre: 'Trap Tech',
-    url: 'https://cdn.freesound.org/previews/612/612081_11861866-lq.mp3',
-  },
-  {
-    id: 'track-chill-ambient',
-    title: 'Modern Product Showcase',
-    artist: 'Commercial Safe Sounds',
-    genre: 'Ambient Commercial',
-    url: 'https://cdn.freesound.org/previews/518/518305_11861866-lq.mp3',
-  }
-];
+export interface VideoStoryboardScene {
+  timestamp: string;
+  visualDescription: string;
+  voiceoverScript: string;
+  onScreenText: string;
+  cameraMovement: string;
+}
+
+export interface VideoProject {
+  id: string;
+  title: string;
+  platform: string;
+  aspectRatio: string;
+  estimatedDuration: number;
+  hookAudioText: string;
+  scenes: VideoStoryboardScene[];
+  audioTrack: string;
+  ctaText: string;
+  renderedPreviewUrl?: string;
+  createdAt: string;
+}
 
 export class VideoGeneratorService {
-  /**
-   * Builds a complete 9:16 video generation timeline and metadata specification
-   */
-  public static createVideoSpec(
-    product: Product,
-    scriptText?: string,
-    durationSeconds: 15 | 30 | 45 | 60 = 15,
-    template: 'modern_reels' | 'bold_tiktok' | 'clean_shorts' = 'modern_reels',
-    audioTrackId = 'track-energetic-beat'
-  ): VideoRenderSpec {
-    const brand = db.getBrandSettings();
-    const images = product.images.filter(img => img.isSelected !== false);
-    const validImages = images.length > 0 ? images : product.images;
+  public static async generateStoryboard(req: VideoGenerateRequest): Promise<VideoProject> {
+    const id = `vid-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const title = req.productTitle;
+    const price = req.productPrice ? `$${req.productPrice.toFixed(2)}` : 'On Sale';
 
-    const audio =
-      ROYALTY_FREE_AUDIO_TRACKS.find(t => t.id === audioTrackId) || ROYALTY_FREE_AUDIO_TRACKS[0];
+    db.addLog('info', 'ai', `Synthesizing video storyboard for [${title}] target [${req.platform}].`);
 
-    // Build 4 scenes based on duration
-    const sceneDuration = durationSeconds / 4;
-    const img0 = validImages[0]?.highResolutionImageUrl || 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?q=80&w=1920&auto=format&fit=crop';
-    const img1 = validImages[1]?.highResolutionImageUrl || img0;
-    const img2 = validImages[2]?.highResolutionImageUrl || img0;
-
-    const scenes: VideoRenderSpec['scenes'] = [
+    const scenes: VideoStoryboardScene[] = [
       {
-        sceneIndex: 1,
-        durationSeconds: sceneDuration,
-        imageUrl: img0,
-        overlayText: product.aiAnalysis?.shortHook || `অসাধারণ অফারে ${product.title}!`,
-        overlaySubtext: '১০০% অরিজিনাল কোয়ালিটি গ্যারান্টি',
-        badgeText: 'HOT DEAL 🔥',
-        transition: 'zoom_in',
+        timestamp: '0:00 - 0:03',
+        visualDescription: 'Fast zoom-in on frustrating everyday situation (tired worker / clutter / discomfort).',
+        voiceoverScript: `Stop scrolling if you are tired of dealing with this every single day!`,
+        onScreenText: '🛑 STOP SCROLLING 🛑',
+        cameraMovement: 'Dynamic snap zoom with high energy sound effect'
       },
       {
-        sceneIndex: 2,
-        durationSeconds: sceneDuration,
-        imageUrl: img1,
-        overlayText: product.features[0] || 'প্রিমিয়াম বিল্ড ও দারুণ ফিনিশিং',
-        overlaySubtext: product.features[1] || 'ব্যবহার করা অত্যন্ত সহজ',
-        badgeText: 'FEATURE 1',
-        transition: 'slide_left',
+        timestamp: '0:03 - 0:08',
+        visualDescription: `Hero reveal of ${title} in sleek studio lighting with smooth unboxing motion.`,
+        voiceoverScript: `Check out the ${title}. It completely changed my routine!`,
+        onScreenText: `✨ Meet the ${title.slice(0, 24)}...`,
+        cameraMovement: 'Smooth cinematic orbital pan'
       },
       {
-        sceneIndex: 3,
-        durationSeconds: sceneDuration,
-        imageUrl: img2,
-        overlayText: product.features[2] || 'দীর্ঘস্থায়ী ব্যাটারি ও ফাস্ট কানেকশন',
-        overlaySubtext: 'সারা বাংলাদেশে ক্যাশ অন ডেলিভারি',
-        badgeText: 'FEATURE 2',
-        transition: 'fade',
+        timestamp: '0:08 - 0:13',
+        visualDescription: 'Close-up on key feature in active use, showing instant satisfaction and durability.',
+        voiceoverScript: `Engineered with premium materials so you get unmatched comfort and convenience instantly.`,
+        onScreenText: '⚡ Instant Results & Premium Build',
+        cameraMovement: 'Macro tilt tracking the ergonomic movement'
       },
       {
-        sceneIndex: 4,
-        durationSeconds: sceneDuration,
-        imageUrl: img0,
-        overlayText: `মাত্র ${product.sellingPrice} টাকা!`,
-        overlaySubtext: brand.defaultCta,
-        badgeText: 'LIMITED STOCK ⚡',
-        transition: 'zoom_in',
+        timestamp: '0:13 - 0:18',
+        visualDescription: 'Split screen comparing bad old way vs effortless new way with ShopBase product.',
+        voiceoverScript: `Why pay hundreds for big brand markups when you can get top tier quality for only ${price}?`,
+        onScreenText: `💰 Only ${price} Today (50% Off)`,
+        cameraMovement: 'Side-by-side swipe transition'
+      },
+      {
+        timestamp: '0:18 - 0:22',
+        visualDescription: 'Call-to-action screen with pulsing "Shop Now" badge and official guarantee logo.',
+        voiceoverScript: `Tap the link in bio right now to grab yours before the flash sale ends!`,
+        onScreenText: '👉 TAP LINK IN BIO - FREE SHIPPING 👈',
+        cameraMovement: 'Subtle push forward into link badge'
       }
     ];
 
-    const spec: VideoRenderSpec = {
-      id: `vid-${product.id}-${Date.now()}`,
-      productId: product.id,
-      title: `${product.title} - 9:16 Creative Video`,
-      durationSeconds,
-      aspectRatio: '9:16',
-      width: 1080,
-      height: 1920,
-      template,
-      audioTrack: audio,
+    return {
+      id,
+      title: `Viral Showcase - ${title}`,
+      platform: req.platform,
+      aspectRatio: req.platform === 'youtube' ? '16:9' : '9:16',
+      estimatedDuration: 22,
+      hookAudioText: `Stop scrolling if you are tired of this!`,
       scenes,
-      brandOverlay: {
-        name: brand.brandName,
-        phone: brand.contactNumber,
-        price: `${product.sellingPrice} BDT`,
-        cta: brand.defaultCta,
-      },
+      audioTrack: 'Upbeat Tech Trend Synth (Royalty Free)',
+      ctaText: `Shop now for ${price} - Limited Stock`,
+      renderedPreviewUrl: req.productImage,
+      createdAt: new Date().toISOString()
     };
-
-    db.addLog('info', 'Video', `Generated 9:16 video spec for "${product.title}" (${durationSeconds}s, template: ${template})`);
-    return spec;
   }
 }

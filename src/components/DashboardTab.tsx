@@ -1,349 +1,186 @@
 import React from 'react';
-import {
-  ShoppingBag,
-  Cpu,
-  Video,
-  Send,
-  Search,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
-  ArrowRight,
-  Sparkles,
-  Layers,
-  Facebook,
-  Youtube,
-  Share2,
-} from 'lucide-react';
-import { DashboardStats, Product, QueueItem } from '../types';
+import { DashboardStats, CloudModel, QueueItem, Product } from '../types.js';
 
 interface DashboardTabProps {
   stats: DashboardStats | null;
+  activeModel: CloudModel | null;
   products: Product[];
   queue: QueueItem[];
-  setActiveTab: (tab: string) => void;
-  onRunAuto: () => void;
+  onNavigate: (tab: string) => void;
 }
 
 export const DashboardTab: React.FC<DashboardTabProps> = ({
   stats,
+  activeModel,
   products,
   queue,
-  setActiveTab,
-  onRunAuto,
+  onNavigate,
 }) => {
+  const scheduledCount = queue.filter((q) => q.status === 'scheduled' || (q.status as any) === 'approved').length;
+  const publishedCount = queue.filter((q) => q.status === 'published').length;
+
   return (
-    <div className="space-y-6">
-      {/* Workflow Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950/60 to-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center space-x-2 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-1">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Automated E-Commerce Social Pipeline</span>
-            </div>
-            <h2 className="text-xl font-bold text-white tracking-tight">
-              ShopBase BD Product-to-Social Automation
-            </h2>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl">
-              Extract high-resolution catalog items from ShopBase, research market angles with Tavily,
-              generate natural Bangla copy with your chosen Cloud AI, synthesize 9:16 short video creatives,
-              and manage automated social publishing with full duplicate protection.
-            </p>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem 1rem' }}>
+      {/* Metric Cards */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+        gap: '1.25rem',
+        marginBottom: '2rem'
+      }}>
+        {/* Metric 1 */}
+        <div style={{
+          backgroundColor: '#1e293b',
+          border: '1px solid #334155',
+          borderRadius: '12px',
+          padding: '1.25rem',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+        }}>
+          <div style={{ fontSize: '0.8125rem', color: '#94a3b8', fontWeight: 600 }}>ACTIVE CLOUD AI</div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f8fafc', marginTop: '0.5rem' }}>
+            {activeModel ? activeModel.providerName : 'None Configured'}
           </div>
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setActiveTab('products')}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center space-x-1.5"
-            >
-              <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Collect Products</span>
-            </button>
-            <button
-              onClick={onRunAuto}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center space-x-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Auto Run Workflow</span>
-            </button>
+          <div style={{
+            fontSize: '0.75rem',
+            marginTop: '0.35rem',
+            color: activeModel?.status === 'working' ? '#34d399' : '#f87171',
+            fontWeight: 600
+          }}>
+            {activeModel ? `${activeModel.modelName} • ${activeModel.status.toUpperCase()}` : 'Click Cloud Models to add'}
           </div>
         </div>
 
-        {/* Visual Pipeline Flow */}
-        <div className="mt-6 pt-5 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 text-center text-xs">
-          <div className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50">
-            <div className="font-semibold text-slate-200">1. ShopBase BD</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Store Discovery</div>
+        {/* Metric 2 */}
+        <div style={{
+          backgroundColor: '#1e293b',
+          border: '1px solid #334155',
+          borderRadius: '12px',
+          padding: '1.25rem',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+        }}>
+          <div style={{ fontSize: '0.8125rem', color: '#94a3b8', fontWeight: 600 }}>PRODUCTS STORED</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#38bdf8', marginTop: '0.5rem' }}>
+            {products.length}
           </div>
-          <div className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50">
-            <div className="font-semibold text-slate-200">2. High-Res Images</div>
-            <div className="text-[11px] text-emerald-400 mt-0.5">Quality Scored</div>
-          </div>
-          <div className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50">
-            <div className="font-semibold text-slate-200">3. Tavily Research</div>
-            <div className="text-[11px] text-cyan-400 mt-0.5">BD Market Angles</div>
-          </div>
-          <div className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50">
-            <div className="font-semibold text-slate-200">4. Cloud AI Model</div>
-            <div className="text-[11px] text-indigo-400 mt-0.5">Agnostic Multi-AI</div>
-          </div>
-          <div className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50">
-            <div className="font-semibold text-slate-200">5. 9:16 Video Studio</div>
-            <div className="text-[11px] text-purple-400 mt-0.5">Reels / Shorts / TikTok</div>
-          </div>
-          <div className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50">
-            <div className="font-semibold text-slate-200">6. Review Queue</div>
-            <div className="text-[11px] text-amber-400 mt-0.5">Human In The Loop</div>
-          </div>
-          <div className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50">
-            <div className="font-semibold text-slate-200">7. FB / YT / TikTok</div>
-            <div className="text-[11px] text-pink-400 mt-0.5">Official APIs</div>
-          </div>
-        </div>
-      </div>
-
-      {/* 4 Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-slate-400 font-medium">Products Collected</p>
-            <p className="text-2xl font-bold text-white mt-1">{stats?.productsCollected || 0}</p>
-            <p className="text-[11px] text-slate-500 mt-1">{stats?.newProducts || 0} unqueued</p>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-            <ShoppingBag className="w-5 h-5" />
+          <div style={{ fontSize: '0.75rem', marginTop: '0.35rem', color: '#94a3b8' }}>
+            Ready for AI content generation
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-slate-400 font-medium">AI Content Generated</p>
-            <p className="text-2xl font-bold text-white mt-1">{stats?.aiContentGenerated || 0}</p>
-            <p className="text-[11px] text-indigo-400 mt-1">Multi-Model Agnostic</p>
+        {/* Metric 3 */}
+        <div style={{
+          backgroundColor: '#1e293b',
+          border: '1px solid #334155',
+          borderRadius: '12px',
+          padding: '1.25rem',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+        }}>
+          <div style={{ fontSize: '0.8125rem', color: '#94a3b8', fontWeight: 600 }}>SCHEDULED IN QUEUE</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fbbf24', marginTop: '0.5rem' }}>
+            {scheduledCount}
           </div>
-          <div className="w-11 h-11 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-            <Cpu className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-slate-400 font-medium">9:16 Video Creatives</p>
-            <p className="text-2xl font-bold text-white mt-1">{stats?.videosGenerated || 0}</p>
-            <p className="text-[11px] text-purple-400 mt-1">Reels, Shorts, TikTok</p>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
-            <Video className="w-5 h-5" />
+          <div style={{ fontSize: '0.75rem', marginTop: '0.35rem', color: '#94a3b8' }}>
+            Facebook, TikTok, Reels, YouTube
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-slate-400 font-medium">Posts Published</p>
-            <p className="text-2xl font-bold text-white mt-1">{stats?.postsPublished || 0}</p>
-            <p className="text-[11px] text-emerald-400 mt-1">{stats?.scheduledPosts || 0} scheduled</p>
+        {/* Metric 4 */}
+        <div style={{
+          backgroundColor: '#1e293b',
+          border: '1px solid #334155',
+          borderRadius: '12px',
+          padding: '1.25rem',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+        }}>
+          <div style={{ fontSize: '0.8125rem', color: '#94a3b8', fontWeight: 600 }}>PUBLISHED POSTS</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#34d399', marginTop: '0.5rem' }}>
+            {publishedCount}
           </div>
-          <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-            <Send className="w-5 h-5" />
+          <div style={{ fontSize: '0.75rem', marginTop: '0.35rem', color: '#94a3b8' }}>
+            Automated social broadcasts
           </div>
         </div>
       </div>
 
-      {/* Grid: Connected Platforms & Recent Queue */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Platform & AI Status */}
-        <div className="space-y-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-white flex items-center space-x-2">
-                <Share2 className="w-4 h-4 text-indigo-400" />
-                <span>Connected Social Platforms</span>
-              </h3>
-              <button
-                onClick={() => setActiveTab('settings')}
-                className="text-xs text-indigo-400 hover:text-indigo-300"
-              >
-                Configure
-              </button>
-            </div>
-
-            <div className="space-y-2.5 text-xs">
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
-                <div className="flex items-center space-x-2.5">
-                  <Facebook className="w-4 h-4 text-blue-500" />
-                  <div>
-                    <div className="font-medium text-slate-200">Facebook Page & Reels</div>
-                    <div className="text-[11px] text-slate-400">Graph API v19</div>
-                  </div>
-                </div>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                  stats?.connectedPlatforms.facebook ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-400'
-                }`}>
-                  {stats?.connectedPlatforms.facebook ? 'ONLINE' : 'NOT CONFIGURED'}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
-                <div className="flex items-center space-x-2.5">
-                  <Youtube className="w-4 h-4 text-red-500" />
-                  <div>
-                    <div className="font-medium text-slate-200">YouTube Data API</div>
-                    <div className="text-[11px] text-slate-400">Shorts & Video Upload</div>
-                  </div>
-                </div>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                  stats?.connectedPlatforms.youtube ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-400'
-                }`}>
-                  {stats?.connectedPlatforms.youtube ? 'ONLINE' : 'NOT CONFIGURED'}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
-                <div className="flex items-center space-x-2.5">
-                  <Video className="w-4 h-4 text-cyan-400" />
-                  <div>
-                    <div className="font-medium text-slate-200">TikTok Creator API</div>
-                    <div className="text-[11px] text-slate-400">Short-Form Vertical Video</div>
-                  </div>
-                </div>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                  stats?.connectedPlatforms.tiktok ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-400'
-                }`}>
-                  {stats?.connectedPlatforms.tiktok ? 'ONLINE' : 'NOT CONFIGURED'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Model Dispatcher Info */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-white flex items-center space-x-2">
-                <Cpu className="w-4 h-4 text-purple-400" />
-                <span>Multi-Cloud AI Architecture</span>
-              </h3>
-              <button
-                onClick={() => setActiveTab('models')}
-                className="text-xs text-indigo-400 hover:text-indigo-300"
-              >
-                Manage Models
-              </button>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              The application is strictly model-agnostic. You can assign different models for Product Analysis,
-              Facebook Captions, YouTube SEO, or TikTok scripts, with automatic fallback protection.
+      {/* Quick Launchpad */}
+      <div style={{
+        backgroundColor: '#0f172a',
+        border: '1px solid #1e293b',
+        borderRadius: '12px',
+        padding: '1.5rem',
+        marginBottom: '2rem'
+      }}>
+        <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
+          Workflow Quick Launchpad
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+          <button
+            onClick={() => onNavigate('models')}
+            style={{
+              padding: '1rem',
+              backgroundColor: '#1e293b',
+              border: '1px solid #334155',
+              borderRadius: '8px',
+              textAlign: 'left',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ fontWeight: 700, color: '#60a5fa', fontSize: '0.95rem' }}>1. Cloud Models</div>
+            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>
+              Connect OpenAI, Groq, DeepSeek, or custom API endpoints.
             </p>
-            <div className="mt-3 p-2 rounded-lg bg-slate-800 text-[11px] flex items-center justify-between">
-              <span className="text-slate-400">Primary Model:</span>
-              <span className="font-semibold text-indigo-300">{stats?.activeAiModel || 'gemini-flash'}</span>
-            </div>
-          </div>
-        </div>
+          </button>
 
-        {/* Right Column: Queue & Recent Products Preview */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-white flex items-center space-x-2">
-                <Clock className="w-4 h-4 text-amber-400" />
-                <span>Publishing & Review Queue</span>
-              </h3>
-              <button
-                onClick={() => setActiveTab('queue')}
-                className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center space-x-1"
-              >
-                <span>View All ({queue.length})</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+          <button
+            onClick={() => onNavigate('products')}
+            style={{
+              padding: '1rem',
+              backgroundColor: '#1e293b',
+              border: '1px solid #334155',
+              borderRadius: '8px',
+              textAlign: 'left',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ fontWeight: 700, color: '#38bdf8', fontSize: '0.95rem' }}>2. Collect Products</div>
+            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>
+              Scrape ShopBase catalog and extract high-resolution image assets.
+            </p>
+          </button>
 
-            {queue.length === 0 ? (
-              <div className="text-center py-8 border border-dashed border-slate-800 rounded-lg text-slate-500 text-xs">
-                No items in queue yet. Collect products and run the full pipeline to generate creatives.
-              </div>
-            ) : (
-              <div className="space-y-2.5">
-                {queue.slice(0, 4).map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/60 flex items-start justify-between gap-3 text-xs"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="font-semibold text-slate-200 capitalize">
-                          {item.platform} • {item.contentType.replace('_', ' ')}
-                        </span>
-                        <span className={`text-[10px] px-2 py-0.2 rounded font-semibold uppercase ${
-                          item.status === 'published'
-                            ? 'bg-emerald-500/20 text-emerald-300'
-                            : item.status === 'approved'
-                            ? 'bg-blue-500/20 text-blue-300'
-                            : item.status === 'scheduled'
-                            ? 'bg-amber-500/20 text-amber-300'
-                            : 'bg-slate-700 text-slate-300'
-                        }`}>
-                          {item.status}
-                        </span>
-                      </div>
-                      <p className="text-slate-300 font-medium truncate">{item.productTitle}</p>
-                      <p className="text-slate-400 text-[11px] line-clamp-1 mt-0.5">{item.content.caption}</p>
-                    </div>
+          <button
+            onClick={() => onNavigate('studio')}
+            style={{
+              padding: '1rem',
+              backgroundColor: '#1e293b',
+              border: '1px solid #334155',
+              borderRadius: '8px',
+              textAlign: 'left',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ fontWeight: 700, color: '#a78bfa', fontSize: '0.95rem' }}>3. Creative Studio</div>
+            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>
+              Generate viral copy, hooks, hashtags, and short video storyboards.
+            </p>
+          </button>
 
-                    <button
-                      onClick={() => setActiveTab('queue')}
-                      className="px-2.5 py-1 text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded text-[11px] transition whitespace-nowrap"
-                    >
-                      Review
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Catalog Highlights */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-white flex items-center space-x-2">
-                <ShoppingBag className="w-4 h-4 text-emerald-400" />
-                <span>Collected Catalog Sample</span>
-              </h3>
-              <button
-                onClick={() => setActiveTab('products')}
-                className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center space-x-1"
-              >
-                <span>Browse Products ({products.length})</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {products.slice(0, 2).map((prod) => (
-                <div
-                  key={prod.id}
-                  className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/60 flex space-x-3 text-xs"
-                >
-                  <img
-                    src={prod.images[0]?.highResolutionImageUrl || prod.images[0]?.originalImageUrl}
-                    alt={prod.title}
-                    referrerPolicy="no-referrer"
-                    className="w-16 h-16 object-cover rounded-lg bg-slate-800 shrink-0"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-slate-200 line-clamp-1">{prod.title}</p>
-                    <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{prod.category}</p>
-                    <div className="flex items-center space-x-2 mt-2">
-                      <span className="text-emerald-400 font-bold">{prod.sellingPrice} ৳</span>
-                      <span className="text-[10px] text-slate-400 line-through">{prod.price} ৳</span>
-                      <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 rounded">
-                        +{prod.profit} ৳ profit
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <button
+            onClick={() => onNavigate('queue')}
+            style={{
+              padding: '1rem',
+              backgroundColor: '#1e293b',
+              border: '1px solid #334155',
+              borderRadius: '8px',
+              textAlign: 'left',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ fontWeight: 700, color: '#34d399', fontSize: '0.95rem' }}>4. Publishing Queue</div>
+            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>
+              Review queued items, schedule auto-publishing, and view history.
+            </p>
+          </button>
         </div>
       </div>
     </div>

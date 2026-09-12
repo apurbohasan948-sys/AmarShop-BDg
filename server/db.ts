@@ -1,961 +1,556 @@
 import fs from 'fs';
 import path from 'path';
-import {
-  Product,
-  AIModelConfig,
-  TaskModelAssignments,
-  TavilyConfig,
-  BrandSettings,
-  PricingRules,
-  SocialAccountConfig,
-  QueueItem,
-  AutomationSettings,
-  ActivityLog,
-} from '../src/types';
 
-interface DatabaseSchema {
-  products: Product[];
-  aiModels: AIModelConfig[];
-  taskAssignments: TaskModelAssignments;
-  tavily: TavilyConfig;
-  brand: BrandSettings;
-  pricing: PricingRules;
-  social: SocialAccountConfig;
-  queue: QueueItem[];
-  automation: AutomationSettings;
-  logs: ActivityLog[];
-  duplicateHistory: { [key: string]: boolean }; // e.g. "prod123_facebook_facebook_post": true
+export interface CloudModelRecord {
+  id: string;
+  providerName: string;
+  apiKey: string; // Server-only, NEVER exposed to client
+  modelName: string;
+  baseUrl: string;
+  status: 'working' | 'untested' | 'error';
+  latencyMs?: number;
+  isDefault?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-const DATA_DIR = path.join(process.cwd(), 'data');
+export interface SanitizedCloudModel {
+  id: string;
+  providerName: string;
+  modelName: string;
+  baseUrl: string;
+  status: 'working' | 'untested' | 'error';
+  latencyMs?: number;
+  isDefault?: boolean;
+  apiKeyConfigured: boolean;
+  apiKeyMasked: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductRecord {
+  id: string;
+  title: string;
+  handle: string;
+  price: number;
+  originalPrice?: number;
+  currency: string;
+  imageUrl: string;
+  additionalImages?: string[];
+  description: string;
+  category: string;
+  storeUrl?: string;
+  extractedHighQuality?: boolean;
+  createdAt: string;
+}
+
+export interface QueueItemRecord {
+  id: string;
+  productId?: string;
+  productTitle: string;
+  productImage: string;
+  platforms: ('facebook' | 'youtube' | 'tiktok' | 'reels')[];
+  caption: string;
+  hashtags: string[];
+  status: 'pending' | 'approved' | 'published' | 'failed';
+  scheduledTime: string;
+  publishedTime?: string;
+  videoUrl?: string;
+  createdAt: string;
+}
+
+export interface LogRecord {
+  id: string;
+  timestamp: string;
+  level: 'info' | 'warn' | 'error' | 'success';
+  category: 'api' | 'scraper' | 'ai' | 'publisher' | 'system';
+  message: string;
+  metadata?: any;
+}
+
+export interface AppSettings {
+  defaultHashtags: string[];
+  autoPublish: boolean;
+  tavilyApiKey?: string;
+  facebookAutoPost: boolean;
+  instagramAutoPost: boolean;
+  tiktokAutoPost: boolean;
+  youtubeAutoPost: boolean;
+  postingIntervalMinutes: number;
+}
+
+interface AppDatabase {
+  cloudModels: CloudModelRecord[];
+  products: ProductRecord[];
+  queue: QueueItemRecord[];
+  logs: LogRecord[];
+  settings: AppSettings;
+}
+
+const DATA_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'app_data.json');
 
-const INITIAL_MODELS: AIModelConfig[] = [
-  {
-    id: 'deepseek-chat',
-    providerName: 'DeepSeek',
-    name: 'DeepSeek',
-    provider: 'deepseek',
-    baseUrl: 'https://api.deepseek.com',
-    endpoint: '/chat/completions',
-    apiKey: '',
-    modelName: 'deepseek-chat',
-    apiType: 'openai-compatible',
-    authHeaderType: 'Bearer',
-    temperature: 0.7,
-    maxTokens: 2048,
-    systemPrompt: 'Direct response copywriting for South Asian e-commerce products.',
-    status: 'untested',
-    lastTestStatus: 'Not Tested',
-    enabled: true,
-    isEnabled: true,
-    isDefault: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'groq-llama3-70b',
-    providerName: 'Groq',
-    name: 'Groq',
-    provider: 'groq',
-    baseUrl: 'https://api.groq.com/openai/v1',
-    endpoint: '/chat/completions',
-    apiKey: '',
-    modelName: 'llama-3.3-70b-versatile',
-    apiType: 'openai-compatible',
-    authHeaderType: 'Bearer',
-    temperature: 0.6,
-    maxTokens: 2048,
-    systemPrompt: 'Generate engaging short-form TikTok & Reel scripts with high retention hooks.',
-    status: 'untested',
-    lastTestStatus: 'Not Tested',
-    enabled: true,
-    isEnabled: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'openai-gpt4o-mini',
-    providerName: 'OpenAI',
-    name: 'OpenAI',
-    provider: 'openai',
-    baseUrl: 'https://api.openai.com/v1',
-    endpoint: '/chat/completions',
-    apiKey: '',
-    modelName: 'gpt-4o-mini',
-    apiType: 'openai-compatible',
-    authHeaderType: 'Bearer',
-    temperature: 0.7,
-    maxTokens: 2048,
-    systemPrompt: 'You are an expert social media copywriter specialized in Bangladeshi consumer behavior.',
-    status: 'untested',
-    lastTestStatus: 'Not Tested',
-    enabled: true,
-    isEnabled: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'openrouter-auto',
-    providerName: 'OpenRouter',
-    name: 'OpenRouter',
-    provider: 'openrouter',
-    baseUrl: 'https://openrouter.ai/api/v1',
-    endpoint: '/chat/completions',
-    apiKey: '',
-    modelName: 'openrouter/auto',
-    apiType: 'openai-compatible',
-    authHeaderType: 'Bearer',
-    temperature: 0.7,
-    maxTokens: 2048,
-    systemPrompt: 'E-commerce product descriptions and Bangladeshi viral marketing.',
-    status: 'untested',
-    lastTestStatus: 'Not Tested',
-    enabled: false,
-    isEnabled: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'gemini-flash',
-    providerName: 'Google Gemini',
-    name: 'Google Gemini',
-    provider: 'gemini',
-    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-    endpoint: '/models/gemini-2.5-flash:generateContent',
-    apiKey: process.env.GEMINI_API_KEY || '',
-    modelName: 'gemini-2.5-flash',
-    apiType: 'gemini',
-    authHeaderType: 'x-api-key',
-    temperature: 0.7,
-    maxTokens: 2048,
-    systemPrompt: 'You are an elite e-commerce marketing strategist for ShopBase BD in Bangladesh. Generate authentic, high-converting product marketing in natural conversational Bangla.',
-    status: process.env.GEMINI_API_KEY ? 'online' : 'untested',
-    lastTestStatus: process.env.GEMINI_API_KEY ? 'Working' : 'Not Tested',
-    latency: 420,
-    latencyMs: 420,
-    lastTestedAt: new Date().toISOString(),
-    enabled: true,
-    isEnabled: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }
-];
-
-const INITIAL_PRODUCTS: Product[] = [
-  {
-    id: 'shopbase-ultrawatch-9',
-    source: 'ShopBase BD',
-    sourceUrl: 'https://shopbasebd.com/store/product/t900-ultra-smart-watch',
-    productId: 'SB-W9-ULTRA',
-    sku: 'SKU-SB-9001',
-    title: 'T900 Ultra Big 2.09" Display Smartwatch with Bluetooth Calling',
-    description: 'T900 Ultra is a premium smartwatch featuring a 2.09-inch HD display, continuous heart-rate & SpO2 tracking, multiple sports modes, wireless magnetic charging, and seamless Bluetooth calling for Android & iOS.',
-    category: 'Smartwatches & Wearables',
-    price: 950,
-    originalPrice: 1550,
-    profit: 250,
-    sellingPrice: 1200,
-    currency: 'BDT',
-    features: [
-      '2.09 inch Infinite HD Full Touch Screen',
-      'Bluetooth Calling & Notification Sync',
-      'Heart Rate, Blood Pressure & Sleep Monitor',
-      'IP67 Water Resistant & Sturdy Zinc Alloy Case',
-      'Wireless Magnetic Fast Charging (Up to 3-5 days standby)'
-    ],
-    variations: [
-      { id: 'v1', name: 'Color', options: ['Orange Strap', 'Black Strap', 'Silver Starlight'] }
-    ],
-    images: [
-      {
-        id: 'img1',
-        originalImageUrl: 'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?q=80&w=1920&auto=format&fit=crop',
-        highResolutionImageUrl: 'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?q=80&w=1920&auto=format&fit=crop',
-        width: 1920,
-        height: 1920,
-        format: 'JPEG',
-        fileSize: '412 KB',
-        qualityScore: 96,
-        label: 'Front Product Shot',
-        isSelected: true,
-      },
-      {
-        id: 'img2',
-        originalImageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1920&auto=format&fit=crop',
-        highResolutionImageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1920&auto=format&fit=crop',
-        width: 1920,
-        height: 1440,
-        format: 'JPEG',
-        fileSize: '345 KB',
-        qualityScore: 92,
-        label: 'Lifestyle Wrist View',
-        isSelected: true,
-      },
-      {
-        id: 'img3',
-        originalImageUrl: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?q=80&w=1920&auto=format&fit=crop',
-        highResolutionImageUrl: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?q=80&w=1920&auto=format&fit=crop',
-        width: 1920,
-        height: 1280,
-        format: 'JPEG',
-        fileSize: '298 KB',
-        qualityScore: 88,
-        label: 'Packaging & Details',
-        isSelected: true,
-      }
-    ],
-    videos: [],
-    availability: 'in_stock',
-    sourceCollectedAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    contentStatus: 'creatives_generated',
-    publishingStatus: 'in_queue',
-    tavilyResearch: {
-      query: 'T900 Ultra Smartwatch Bangladesh price reviews and trend 2026',
-      summary: 'Smartwatches with big 2.0+ inch displays and Bluetooth calling are currently trending on TikTok and Daraz in Bangladesh among college students and young professionals who want an Apple Watch Ultra aesthetic under 1,500 BDT.',
-      trends: ['Budget Apple Watch Ultra lookalike', 'Cash on delivery demand in BD', 'Fast Bluetooth sync with Bangla notification support'],
-      keywords: ['T900 Ultra BD price', 'best budget smartwatch 2026', 'smartwatch with bluetooth call bangladesh'],
-      researchedAt: new Date().toISOString(),
+const INITIAL_DB: AppDatabase = {
+  cloudModels: [],
+  products: [
+    {
+      id: 'prod-1',
+      title: 'Ergonomic Memory Foam Lumbar Support Pillow',
+      handle: 'ergonomic-lumbar-support-pillow',
+      price: 29.99,
+      originalPrice: 49.99,
+      currency: 'USD',
+      imageUrl: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=800&q=80',
+      additionalImages: [
+        'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80',
+        'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=800&q=80'
+      ],
+      description: 'Medical-grade memory foam back cushion designed to relieve lower back pain, improve posture, and provide all-day comfort for desk workers and drivers.',
+      category: 'Home & Office',
+      storeUrl: 'https://shopbase.com/demo/lumbar-pillow',
+      extractedHighQuality: true,
+      createdAt: new Date(Date.now() - 3600000 * 24).toISOString()
     },
-    aiAnalysis: {
-      summary: 'একটি ট্রেন্ডি ও প্রিমিয়াম ডিজাইনের স্মার্টওয়াচ যা ব্লুটুথ কলিং এবং হেলথ ট্র্যাকিং সুবিধা নিশ্চিত করে অত্যন্ত সাশ্রয়ী দামে।',
-      keySellingPoints: [
-        'হাতে পরে কথা বলার দারুণ ব্লুটুথ কলিং অভিজ্ঞতা',
-        'বিশাল ২.০৯ ইঞ্চি ফুল এইচডি ডিসপ্লে',
-        'ক্যাশ অন ডেলিভারিতে সারাদেশে দ্রুত হোম ডেলিভারি'
+    {
+      id: 'prod-2',
+      title: 'Ultra-Quiet 2L Ultrasonic Cool Mist Air Humidifier',
+      handle: 'ultrasonic-cool-mist-humidifier',
+      price: 34.50,
+      originalPrice: 59.00,
+      currency: 'USD',
+      imageUrl: 'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=800&q=80',
+      additionalImages: [
+        'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800&q=80'
       ],
-      targetCustomer: 'তরুণ প্রজন্ম, শিক্ষার্থী এবং গ্যাজেট প্রেমী যারা সাশ্রয়ী মূল্যে প্রিমিয়াম লুক খুঁজছেন।',
-      marketingAngle: 'স্টাইল ও প্রযুক্তির সেরা মেলবন্ধন - বাজেটের মধ্যেই আল্ট্রা প্রিমিয়াম স্মার্টওয়াচ!',
-      shortHook: '১,৫০০ টাকার কমে প্রিমিয়াম আল্ট্রা স্মার্টওয়াচ খুঁজছেন? দেখুন এই অফার!',
-      benefits: [
-        'ফোনে হাত না দিয়েই সরাসরি কল রিসিভ ও কথা বলুন',
-        'হার্ট রেট, রক্তচাপ ও স্লিপ ট্র্যাকিং দিয়ে রাখুন স্বাস্থ্যের হিসাব',
-        'স্মার্ট লুক যেকোনো পোশাকে মানানসই'
-      ],
-      cta: 'অফারটি সীমিত সময়ের জন্য! এখনই "Shop Now" বাটনে ক্লিক করুন অথবা মেসেজ দিন।',
-      keywords: ['T900 Ultra BD', 'Smart Watch Bangladesh', 'Budget Gadget BD', 'ShopBase BD'],
-      hashtags: ['#T900Ultra', '#SmartWatchBD', '#GadgetBD', '#ShopBaseBD', '#Smartwatch2026'],
-      modelUsed: 'gemini-2.5-flash',
-      generatedAt: new Date().toISOString(),
-    },
-  },
-  {
-    id: 'shopbase-anc-earbuds-pro',
-    source: 'ShopBase BD',
-    sourceUrl: 'https://shopbasebd.com/store/product/m10-tws-wireless-earbuds',
-    productId: 'SB-M10-TWS',
-    sku: 'SKU-SB-4082',
-    title: 'M10 TWS Wireless Earbuds with 2000mAh Powerbank LED Display',
-    description: 'M10 TWS Bluetooth 5.3 Earbuds with heavy bass stereo sound, touch control, noise cancellation, waterproof casing, and dual 2000mAh emergency mobile powerbank charging case.',
-    category: 'Audio & Earphones',
-    price: 450,
-    originalPrice: 850,
-    profit: 200,
-    sellingPrice: 650,
-    currency: 'BDT',
-    features: [
-      'HiFi 9D Heavy Bass Sound Quality',
-      '2000mAh Emergency Power Bank Charging Box',
-      'Dual LED Battery Percentage Display',
-      'Bluetooth 5.3 Quick Auto Pairing',
-      'Touch Control (Play, Pause, Call, Volume)'
-    ],
-    variations: [
-      { id: 'v2', name: 'Version', options: ['M10 Classic Black LED', 'M10 Pro Carbon'] }
-    ],
-    images: [
-      {
-        id: 'img4',
-        originalImageUrl: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=1920&auto=format&fit=crop',
-        highResolutionImageUrl: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=1920&auto=format&fit=crop',
-        width: 1920,
-        height: 1920,
-        format: 'JPEG',
-        fileSize: '380 KB',
-        qualityScore: 95,
-        label: 'Earbuds Case & Display',
-        isSelected: true,
-      },
-      {
-        id: 'img5',
-        originalImageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1920&auto=format&fit=crop',
-        highResolutionImageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1920&auto=format&fit=crop',
-        width: 1920,
-        height: 1280,
-        format: 'JPEG',
-        fileSize: '310 KB',
-        qualityScore: 90,
-        label: 'Sound & Texture Detail',
-        isSelected: true,
-      }
-    ],
-    videos: [],
-    availability: 'in_stock',
-    sourceCollectedAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    contentStatus: 'analyzed',
-    publishingStatus: 'unprocessed',
-    tavilyResearch: {
-      query: 'M10 TWS earbuds sound quality Bangladesh consumer review',
-      summary: 'M10 is one of the highest selling wireless earphones in Bangladesh due to its double utility: powerful music sound + emergency phone charging.',
-      trends: ['Budget TWS under 700 Taka', 'Gaming low latency', 'Long battery life'],
-      keywords: ['M10 TWS price in BD', 'wireless earphone low price', 'bluetooth earphone bangladesh'],
-      researchedAt: new Date().toISOString(),
-    },
-    aiAnalysis: {
-      summary: 'অসম্ভব ক্লিয়ার সাউন্ড আর ৯ডি বেস সহ M10 TWS ইয়ারবাডস, যাতে রয়েছে ইমার্জেন্সি মোবাইল চার্জিং সুবিধা!',
-      keySellingPoints: [
-        '৯ডি সুপার হেভি বেস মিউজিক কোয়ালিটি',
-        'চার্জিং কেস দিয়েই ফোন চার্জ করার ইমার্জেন্সি পাওয়ারব্যাংক',
-        'এলইডি ডিসপ্লেতে দেখা যাবে চার্জের শতকরা পরিমাণ'
-      ],
-      targetCustomer: 'মিউজিক লাভার, বাইকার ও শিক্ষার্থী যারা বাজেটবান্ধব সেরা ইয়ারবাডস খুঁজছেন।',
-      marketingAngle: 'গান শোনার পাশাপাশি ইমার্জেন্সিতে ফোন চার্জের দ্বৈত সুবিধা!',
-      shortHook: 'সাশ্রয়ী দামে সেরা বেস ও পাওয়ারব্যাংক সাপোর্ট পেতে এখনই দেখুন M10 TWS!',
-      benefits: [
-        'তারের ঝামেলাহীন অটো কানেকশন',
-        'ঘাম ও পানি প্রতিরোধী ডিজাইন',
-        'এক চার্জেই দীর্ঘ সময় নিরবচ্ছিন্ন অডিও'
-      ],
-      cta: 'অর্ডার করতে ইনবক্স করুন অথবা ভিজিট করুন আমাদের ওয়েবসাইটে।',
-      keywords: ['M10 TWS', 'Earbuds BD', 'Wireless Earphone', 'ShopBase BD'],
-      hashtags: ['#M10Earbuds', '#WirelessAudio', '#GadgetsBangladesh', '#ShopBaseBD'],
-      modelUsed: 'gemini-2.5-flash',
-      generatedAt: new Date().toISOString(),
+      description: 'Keep room air hydrated and fresh with whisper-quiet ultrasonic atomization, 7-color soothing ambient LED nightlight, and automatic dry-burn shutoff.',
+      category: 'Wellness & Living',
+      storeUrl: 'https://shopbase.com/demo/mist-humidifier',
+      extractedHighQuality: true,
+      createdAt: new Date(Date.now() - 3600000 * 12).toISOString()
     }
+  ],
+  queue: [
+    {
+      id: 'queue-1',
+      productId: 'prod-1',
+      productTitle: 'Ergonomic Memory Foam Lumbar Support Pillow',
+      productImage: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=800&q=80',
+      platforms: ['facebook', 'reels', 'tiktok'],
+      caption: 'Stop suffering from back pain during long work hours! 🪑✨ Meet the ergonomic cushion desk workers swear by. Soft, supportive, posture-transforming.',
+      hashtags: ['#WorkFromHome', '#OfficeErgonomics', '#DeskSetup', '#BackPainRelief', '#ShopBase'],
+      status: 'approved',
+      scheduledTime: new Date(Date.now() + 3600000 * 2).toISOString(),
+      createdAt: new Date().toISOString()
+    }
+  ],
+  logs: [
+    {
+      id: 'log-1',
+      timestamp: new Date().toISOString(),
+      level: 'info',
+      category: 'system',
+      message: 'ShopBase AI Social Media Automation initialized with persistent storage.'
+    }
+  ],
+  settings: {
+    defaultHashtags: ['#ShopBase', '#TrendingNow', '#ViralFinds', '#SmartShopping', '#Deals'],
+    autoPublish: false,
+    facebookAutoPost: true,
+    instagramAutoPost: true,
+    tiktokAutoPost: true,
+    youtubeAutoPost: false,
+    postingIntervalMinutes: 60
   }
-];
+};
 
-const INITIAL_QUEUE: QueueItem[] = [
-  {
-    id: 'q-fb-1',
-    productId: 'shopbase-ultrawatch-9',
-    productTitle: 'T900 Ultra Big 2.09" Display Smartwatch with Bluetooth Calling',
-    platform: 'facebook',
-    contentType: 'facebook_post',
-    status: 'approved',
-    scheduledTime: new Date(Date.now() + 3600 * 1000 * 2).toISOString(),
-    aiModelUsed: 'gemini-2.5-flash',
-    tavilyResearchUsed: true,
-    content: {
-      title: 'হাতে পরলেই প্রিমিয়াম লুক! T900 Ultra Smartwatch',
-      caption: `🔥 হাতে পরলেই নজর কাড়বে প্রিমিয়াম লুক! নিয়ে নিন T900 Ultra Big 2.09" Display Smartwatch!
-
-👉 কেন এই স্মার্টওয়াচটি সেরা পছন্দ?
-✅ ২.০৯ ইঞ্চি ফুল এইচডি সুপার ডিসপ্লে
-✅ ব্লুটুথ কলিং - ঘড়ি থেকেই কল রিসিভ ও ডায়াল করুন
-✅ হার্ট রেট, ব্লাড প্রেশার ও স্লিপ ট্র্যাকিং সেন্সর
-✅ পানি ও ধুলোবালি প্রতিরোধক IP67 ওয়াটার রেসিস্ট্যান্ট
-✅ ওয়্যারলেস ফাস্ট ম্যাগনেটিক চার্জিং
-
-💰 বিশেষ অফার মূল্য: মাত্র ১,২০০ টাকা! (নিয়মিত মূল্য: ১,৫৫০ টাকা)
-
-🚚 ক্যাশ অন ডেলিভারিতে পণ্য দেখে টাকা পরিশোধ করার সুবিধা!
-
-📩 অর্ডার করতে এখনই আপনার নাম, পূর্ণ ঠিকানা ও মোবাইল নম্বর সহ মেসেজ করুন অথবা কল করুন 01700-000000 নম্বরে।`,
-      hook: '১,৫০০ টাকার কমে প্রিমিয়াম আল্ট্রা স্মার্টওয়াচ খুঁজছেন?',
-      sellingPriceText: '১,২০০ টাকা',
-      featuresList: ['2.09" HD Display', 'Bluetooth Calling', 'Magnetic Fast Charger'],
-      cta: 'অর্ডার করতে ইনবক্স করুন এখনই!',
-      hashtags: ['#T900Ultra', '#SmartWatchBD', '#GadgetBD', '#ShopBaseBD', '#ViralWatch'],
-      mediaUrls: ['https://images.unsplash.com/photo-1579586337278-3befd40fd17a?q=80&w=1920&auto=format&fit=crop'],
-    },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'q-reel-1',
-    productId: 'shopbase-ultrawatch-9',
-    productTitle: 'T900 Ultra Big 2.09" Display Smartwatch',
-    platform: 'facebook',
-    contentType: 'facebook_reel',
-    status: 'draft',
-    aiModelUsed: 'gemini-2.5-flash',
-    content: {
-      title: 'T900 Ultra 9:16 Short Video',
-      caption: 'এই ঘড়িটি হাতে না দেখলে বুঝবেন না এর প্রিমিয়াম ফিনিশ! 🔥 T900 Ultra Smartwatch মাত্র ১২০০ টাকায়! #ShopBaseBD #SmartWatch',
-      hook: '১০০০ টাকার বাজেটে এতো প্রিমিয়াম ফিচার কিভাবে সম্ভব?!',
-      videoScript: `[Scene 1: 0-3s] Hook: "আপনি কি ১,৫০০ টাকার মধ্যে সেরা লুকিং স্মার্টওয়াচ খুঁজছেন?"
-[Scene 2: 3-8s] Displaying 2.09" ultra HD screen and vibrant watch faces.
-[Scene 3: 8-12s] Demonstrating Bluetooth Calling and instant clear voice test.
-[Scene 4: 12-15s] CTA: "সারা বাংলাদেশে ক্যাশ অন ডেলিভারি! আজই অর্ডার কনফার্ম করতে ডেসক্রিপশনের লিংকে যান।"`,
-      mediaUrls: ['https://images.unsplash.com/photo-1579586337278-3befd40fd17a?q=80&w=1920&auto=format&fit=crop'],
-      hashtags: ['#T900Ultra', '#ReelsBD', '#GadgetVlog', '#TrendingBD'],
-      videoDurationSeconds: 15,
-    },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'q-tiktok-1',
-    productId: 'shopbase-ultrawatch-9',
-    productTitle: 'T900 Ultra Big 2.09" Display Smartwatch',
-    platform: 'tiktok',
-    contentType: 'tiktok_video',
-    status: 'draft',
-    aiModelUsed: 'groq-llama3-70b',
-    content: {
-      caption: 'অবিশ্বাস্য ডিসকাউন্টে T900 Ultra স্মার্টওয়াচ! ব্লুটুথ কলিং + ফুল স্ক্রিন ডিসপ্লে 🔥 #TikTokBD #GadgetsBD #ShopBase',
-      hook: 'এই ঘড়িটি মিস করলে সত্যি লস করবেন!',
-      videoScript: `00-03s: হ্যালো গ্যাজেট লাভার্স! এই বাজেট গ্যাজেটটি দেখলে আপনিও চমকে যাবেন!
-04-09s: বিশাল ২.০৯ ইঞ্চি স্ক্রিন আর অ্যাপল ওয়াচ আল্ট্রা ভাইব!
-10-15s: দেরি না করে এখনই অর্ডার করুন বায়ো লিংকে ক্লিক করে!`,
-      hashtags: ['#GadgetBD', '#TikTokShopBD', '#T900Ultra', '#Smartwatch'],
-      mediaUrls: ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1920&auto=format&fit=crop'],
-      videoDurationSeconds: 15,
-    },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }
-];
-
-class DatabaseService {
-  private data: DatabaseSchema;
+class DatabaseManager {
+  private data: AppDatabase;
 
   constructor() {
-    this.ensureDirectory();
     this.data = this.loadData();
   }
 
-  private ensureDirectory() {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-  }
-
-  private loadData(): DatabaseSchema {
+  private loadData(): AppDatabase {
     try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
       if (fs.existsSync(DB_FILE)) {
         const raw = fs.readFileSync(DB_FILE, 'utf-8');
         const parsed = JSON.parse(raw);
-        // Ensure all top-level keys exist
         return {
-          products: parsed.products || INITIAL_PRODUCTS,
-          aiModels: parsed.aiModels || INITIAL_MODELS,
-          taskAssignments: parsed.taskAssignments || {
-            productAnalysis: 'gemini-flash',
-            facebookCaption: 'gemini-flash',
-            youtubeContent: 'gemini-flash',
-            tiktokContent: 'groq-llama3-70b',
-            videoScript: 'groq-llama3-70b',
-            imagePrompt: 'gemini-flash',
-            generalMarketing: 'gemini-flash',
-            fallbackModelId: 'openai-gpt4o-mini',
-            enableFallback: true,
-          },
-          tavily: parsed.tavily || {
-            apiKey: process.env.TAVILY_API_KEY || '',
-            searchDepth: 'basic',
-            maxResults: 5,
-            includeAnswer: true,
-            status: process.env.TAVILY_API_KEY ? 'online' : 'not_configured',
-          },
-          brand: parsed.brand || {
-            brandName: 'ShopBase BD Gadget Hub',
-            logoUrl: 'https://shopbasebd.com/wp-content/uploads/2023/shopbase-logo.png',
-            contactNumber: '+880 1700-000000',
-            facebookPage: 'https://facebook.com/ShopBaseBD',
-            website: 'https://shopbasebd.com',
-            orderUrl: 'https://shopbasebd.com/store',
-            defaultCta: 'অর্ডার করতে এখনই ইনবক্স করুন অথবা ওয়েবসাইটে ভিজিট করুন। সারা বাংলাদেশে ক্যাশ অন ডেলিভারি!',
-            defaultProfit: 200,
-            currency: 'BDT',
-            language: 'Bangla',
-          },
-          pricing: parsed.pricing || {
-            strategy: 'fixed',
-            fixedProfit: 150,
-            percentageProfit: 15,
-            minProfit: 100,
-            customFormula: 'sourcePrice + 150',
-          },
-          social: parsed.social || {
-            facebook: {
-              connected: false,
-              pageName: 'ShopBase Official BD',
-              pageId: '1092837465',
-              status: 'not_configured',
-            },
-            youtube: {
-              connected: false,
-              channelTitle: 'ShopBase BD Tech',
-              channelId: 'UC_shopbasebd_tech',
-              status: 'not_configured',
-            },
-            tiktok: {
-              connected: false,
-              accountName: '@shopbase.bd',
-              status: 'not_configured',
-              permissionsNotice: 'Requires TikTok Content Posting API permissions.',
-            },
-          },
-          queue: parsed.queue || INITIAL_QUEUE,
-          automation: parsed.automation || {
-            autoCollect: false,
-            autoGenerate: false,
-            autoPost: false,
-            intervalHours: 6,
-            testMode: true, // Safe mode default
-            categoryFilters: ['Smartwatches & Wearables', 'Audio & Earphones', 'Accessories'],
-            minQualityScore: 80,
-            lastRunAt: new Date().toISOString(),
-            nextRunAt: new Date(Date.now() + 6 * 3600 * 1000).toISOString(),
-          },
-          logs: parsed.logs || [
-            {
-              id: 'log-init',
-              timestamp: new Date().toISOString(),
-              level: 'info',
-              service: 'Database',
-              message: 'ShopBase BD Automation Database Initialized with persistent storage.',
-            }
-          ],
-          duplicateHistory: parsed.duplicateHistory || {
-            'shopbase-ultrawatch-9_facebook_facebook_post': true,
-          }
+          ...INITIAL_DB,
+          ...parsed,
+          cloudModels: Array.isArray(parsed.cloudModels) ? parsed.cloudModels : [],
+          products: Array.isArray(parsed.products) ? parsed.products : INITIAL_DB.products,
+          queue: Array.isArray(parsed.queue) ? parsed.queue : INITIAL_DB.queue,
+          logs: Array.isArray(parsed.logs) ? parsed.logs : INITIAL_DB.logs,
+          settings: { ...INITIAL_DB.settings, ...(parsed.settings || {}) }
         };
       }
     } catch (err) {
-      console.error('Error loading DB, using defaults', err);
+      console.error('[DB] Failed to load data from disk, using defaults:', err);
+    }
+    this.saveData(INITIAL_DB);
+    return JSON.parse(JSON.stringify(INITIAL_DB));
+  }
+
+  private saveData(dataToSave?: AppDatabase): void {
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      const data = dataToSave || this.data;
+      const tempFile = `${DB_FILE}.tmp.${Date.now()}`;
+      fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf-8');
+      fs.renameSync(tempFile, DB_FILE);
+    } catch (err) {
+      console.error('[DB] Failed to persist data to disk:', err);
+    }
+  }
+
+  // API Key Masking Helper
+  public maskApiKey(key: string): string {
+    if (!key) return '';
+    if (key.length <= 6) return '••••••••';
+    const last4 = key.slice(-4);
+    return `••••••••${last4}`;
+  }
+
+  // URL Normalization (Step 13: OpenAI-compatible URL helper)
+  public normalizeBaseUrl(baseUrl: string): string {
+    if (!baseUrl) return '';
+    let trimmed = baseUrl.trim();
+    // remove trailing slashes
+    trimmed = trimmed.replace(/\/+$/, '');
+
+    // If it already ends with /chat/completions, return as-is
+    if (trimmed.endsWith('/chat/completions')) {
+      return trimmed;
     }
 
-    const defaultState: DatabaseSchema = {
-      products: INITIAL_PRODUCTS,
-      aiModels: INITIAL_MODELS,
-      taskAssignments: {
-        productAnalysis: 'gemini-flash',
-        facebookCaption: 'gemini-flash',
-        youtubeContent: 'gemini-flash',
-        tiktokContent: 'groq-llama3-70b',
-        videoScript: 'groq-llama3-70b',
-        imagePrompt: 'gemini-flash',
-        generalMarketing: 'gemini-flash',
-        fallbackModelId: 'openai-gpt4o-mini',
-        enableFallback: true,
-      },
-      tavily: {
-        apiKey: process.env.TAVILY_API_KEY || '',
-        searchDepth: 'basic',
-        maxResults: 5,
-        includeAnswer: true,
-        status: process.env.TAVILY_API_KEY ? 'online' : 'not_configured',
-      },
-      brand: {
-        brandName: 'ShopBase BD Gadget Hub',
-        logoUrl: 'https://shopbasebd.com/wp-content/uploads/2023/shopbase-logo.png',
-        contactNumber: '+880 1700-000000',
-        facebookPage: 'https://facebook.com/ShopBaseBD',
-        website: 'https://shopbasebd.com',
-        orderUrl: 'https://shopbasebd.com/store',
-        defaultCta: 'অর্ডার করতে এখনই ইনবক্স করুন অথবা ওয়েবসাইটে ভিজিট করুন। সারা বাংলাদেশে ক্যাশ অন ডেলিভারি!',
-        defaultProfit: 200,
-        currency: 'BDT',
-        language: 'Bangla',
-      },
-      pricing: {
-        strategy: 'fixed',
-        fixedProfit: 150,
-        percentageProfit: 15,
-        minProfit: 100,
-        customFormula: 'sourcePrice + 150',
-      },
-      social: {
-        facebook: {
-          connected: false,
-          pageName: 'ShopBase Official BD',
-          pageId: '1092837465',
-          status: 'not_configured',
+    // If it already ends with /v1, append /chat/completions
+    if (trimmed.endsWith('/v1')) {
+      return `${trimmed}/chat/completions`;
+    }
+
+    // If it's a domain or path without /v1 and without /chat/completions
+    // standard OpenAI-compatible API is /v1/chat/completions
+    return `${trimmed}/v1/chat/completions`;
+  }
+
+  // Model Testing (Step 12 & 13)
+  public async testOpenAIEndpoint(
+    rawBaseUrl: string,
+    apiKey: string,
+    modelName: string
+  ): Promise<{ success: boolean; latencyMs?: number; error?: string; rawResponse?: any }> {
+    const endpoint = this.normalizeBaseUrl(rawBaseUrl);
+    const startTime = Date.now();
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey.trim()}`
         },
-        youtube: {
-          connected: false,
-          channelTitle: 'ShopBase BD Tech',
-          channelId: 'UC_shopbasebd_tech',
-          status: 'not_configured',
-        },
-        tiktok: {
-          connected: false,
-          accountName: '@shopbase.bd',
-          status: 'not_configured',
-          permissionsNotice: 'Requires TikTok Content Posting API permissions.',
-        },
-      },
-      queue: INITIAL_QUEUE,
-      automation: {
-        autoCollect: false,
-        autoGenerate: false,
-        autoPost: false,
-        intervalHours: 6,
-        testMode: true,
-        categoryFilters: ['Smartwatches & Wearables', 'Audio & Earphones'],
-        minQualityScore: 80,
-        lastRunAt: new Date().toISOString(),
-        nextRunAt: new Date(Date.now() + 6 * 3600 * 1000).toISOString(),
-      },
-      logs: [
-        {
-          id: 'log-init',
-          timestamp: new Date().toISOString(),
-          level: 'info',
-          service: 'Database',
-          message: 'ShopBase BD Automation Database Initialized with persistent storage.',
+        body: JSON.stringify({
+          model: modelName.trim(),
+          messages: [
+            { role: 'user', content: 'Respond with exactly: OK' }
+          ],
+          max_tokens: 5,
+          temperature: 0.1
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+      const latencyMs = Date.now() - startTime;
+
+      if (!res.ok) {
+        let errorDetails = `HTTP ${res.status} ${res.statusText}`;
+        try {
+          const errJson = await res.json();
+          if (errJson?.error?.message) {
+            errorDetails = errJson.error.message;
+          } else if (typeof errJson === 'object') {
+            errorDetails = JSON.stringify(errJson);
+          }
+        } catch {
+          const text = await res.text().catch(() => '');
+          if (text) errorDetails += `: ${text.slice(0, 150)}`;
         }
-      ],
-      duplicateHistory: {
-        'shopbase-ultrawatch-9_facebook_facebook_post': true,
+        return { success: false, error: errorDetails, latencyMs };
       }
+
+      const data = await res.json();
+      return { success: true, latencyMs, rawResponse: data };
+    } catch (err: any) {
+      const latencyMs = Date.now() - startTime;
+      const msg = err.name === 'AbortError' ? 'Connection timed out after 12s' : (err.message || 'Network connection failed');
+      return { success: false, error: msg, latencyMs };
+    }
+  }
+
+  // --- Cloud Models Management ---
+
+  public getSanitizedModels(): SanitizedCloudModel[] {
+    return this.data.cloudModels.map((m) => ({
+      id: m.id,
+      providerName: m.providerName,
+      modelName: m.modelName,
+      baseUrl: m.baseUrl,
+      status: m.status,
+      latencyMs: m.latencyMs,
+      isDefault: !!m.isDefault,
+      apiKeyConfigured: !!m.apiKey,
+      apiKeyMasked: this.maskApiKey(m.apiKey),
+      createdAt: m.createdAt,
+      updatedAt: m.updatedAt
+    }));
+  }
+
+  public getModelById(id: string, includeSecret = false): (CloudModelRecord | SanitizedCloudModel) | null {
+    const found = this.data.cloudModels.find((m) => m.id === id);
+    if (!found) return null;
+    if (includeSecret) return found;
+
+    return {
+      id: found.id,
+      providerName: found.providerName,
+      modelName: found.modelName,
+      baseUrl: found.baseUrl,
+      status: found.status,
+      latencyMs: found.latencyMs,
+      isDefault: !!found.isDefault,
+      apiKeyConfigured: !!found.apiKey,
+      apiKeyMasked: this.maskApiKey(found.apiKey),
+      createdAt: found.createdAt,
+      updatedAt: found.updatedAt
+    };
+  }
+
+  public getActiveModel(): CloudModelRecord | null {
+    const defaultModel = this.data.cloudModels.find((m) => m.isDefault && m.status === 'working');
+    if (defaultModel) return defaultModel;
+    const workingModel = this.data.cloudModels.find((m) => m.status === 'working');
+    return workingModel || this.data.cloudModels[0] || null;
+  }
+
+  public async saveCloudModel(params: {
+    providerName: string;
+    apiKey: string;
+    modelName: string;
+    baseUrl: string;
+    status?: 'working' | 'untested' | 'error';
+    latencyMs?: number;
+    isDefault?: boolean;
+  }): Promise<SanitizedCloudModel> {
+    const now = new Date().toISOString();
+    const id = `model-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+
+    const newRecord: CloudModelRecord = {
+      id,
+      providerName: params.providerName.trim(),
+      apiKey: params.apiKey.trim(),
+      modelName: params.modelName.trim(),
+      baseUrl: this.normalizeBaseUrl(params.baseUrl),
+      status: params.status || 'working',
+      latencyMs: params.latencyMs,
+      isDefault: this.data.cloudModels.length === 0 ? true : !!params.isDefault,
+      createdAt: now,
+      updatedAt: now
     };
 
-    this.saveDataDirect(defaultState);
-    return defaultState;
-  }
-
-  private saveData() {
-    this.saveDataDirect(this.data);
-  }
-
-  private saveDataDirect(data: DatabaseSchema) {
-    try {
-      this.ensureDirectory();
-      const serialized = JSON.stringify(data, null, 2);
-      try {
-        const tmp = `${DB_FILE}.tmp`;
-        fs.writeFileSync(tmp, serialized, 'utf-8');
-        fs.renameSync(tmp, DB_FILE);
-      } catch (renameErr) {
-        // Fallback to direct synchronous write
-        fs.writeFileSync(DB_FILE, serialized, 'utf-8');
-      }
-    } catch (err) {
-      console.error('Failed to write database file', err);
+    if (newRecord.isDefault) {
+      this.data.cloudModels.forEach((m) => (m.isDefault = false));
     }
+
+    this.data.cloudModels.push(newRecord);
+    this.saveData();
+
+    this.addLog('success', 'api', `Cloud model [${newRecord.providerName} / ${newRecord.modelName}] saved successfully.`);
+
+    return {
+      id: newRecord.id,
+      providerName: newRecord.providerName,
+      modelName: newRecord.modelName,
+      baseUrl: newRecord.baseUrl,
+      status: newRecord.status,
+      latencyMs: newRecord.latencyMs,
+      isDefault: newRecord.isDefault,
+      apiKeyConfigured: true,
+      apiKeyMasked: this.maskApiKey(newRecord.apiKey),
+      createdAt: newRecord.createdAt,
+      updatedAt: newRecord.updatedAt
+    };
   }
 
-  // --- PRODUCTS ---
-  public getProducts(): Product[] {
+  public updateCloudModel(
+    id: string,
+    updates: Partial<Omit<CloudModelRecord, 'id' | 'createdAt'>>
+  ): SanitizedCloudModel | null {
+    const idx = this.data.cloudModels.findIndex((m) => m.id === id);
+    if (idx === -1) return null;
+
+    const current = this.data.cloudModels[idx];
+    if (updates.baseUrl) {
+      updates.baseUrl = this.normalizeBaseUrl(updates.baseUrl);
+    }
+    if (updates.isDefault) {
+      this.data.cloudModels.forEach((m) => (m.isDefault = false));
+    }
+
+    this.data.cloudModels[idx] = {
+      ...current,
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+
+    this.saveData();
+    const updated = this.data.cloudModels[idx];
+
+    return {
+      id: updated.id,
+      providerName: updated.providerName,
+      modelName: updated.modelName,
+      baseUrl: updated.baseUrl,
+      status: updated.status,
+      latencyMs: updated.latencyMs,
+      isDefault: updated.isDefault,
+      apiKeyConfigured: !!updated.apiKey,
+      apiKeyMasked: this.maskApiKey(updated.apiKey),
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt
+    };
+  }
+
+  public deleteCloudModel(id: string): boolean {
+    const initialLen = this.data.cloudModels.length;
+    this.data.cloudModels = this.data.cloudModels.filter((m) => m.id !== id);
+    if (this.data.cloudModels.length !== initialLen) {
+      if (this.data.cloudModels.length > 0 && !this.data.cloudModels.some((m) => m.isDefault)) {
+        this.data.cloudModels[0].isDefault = true;
+      }
+      this.saveData();
+      this.addLog('info', 'api', `Cloud model [${id}] removed.`);
+      return true;
+    }
+    return false;
+  }
+
+  // --- Products ---
+  public getProducts(): ProductRecord[] {
     return this.data.products;
   }
 
-  public getProductById(id: string): Product | undefined {
-    return this.data.products.find(p => p.id === id || p.productId === id);
-  }
-
-  public saveProduct(product: Product): { product: Product; isDuplicate: boolean } {
-    // Check duplicates by sourceUrl, productId, or SKU
-    const existingIndex = this.data.products.findIndex(
-      p => (p.sourceUrl && p.sourceUrl === product.sourceUrl) ||
-           (p.productId && p.productId === product.productId) ||
-           (p.sku && product.sku && p.sku === product.sku) ||
-           p.id === product.id
-    );
-
-    if (existingIndex >= 0) {
-      this.data.products[existingIndex] = {
-        ...this.data.products[existingIndex],
-        ...product,
-        updatedAt: new Date().toISOString(),
+  public addProducts(newItems: Omit<ProductRecord, 'id' | 'createdAt'>[]): ProductRecord[] {
+    const added: ProductRecord[] = [];
+    for (const item of newItems) {
+      const id = `prod-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      const prod: ProductRecord = {
+        ...item,
+        id,
+        createdAt: new Date().toISOString()
       };
-      this.saveData();
-      return { product: this.data.products[existingIndex], isDuplicate: true };
-    } else {
-      this.data.products.unshift(product);
-      this.saveData();
-      this.addLog('info', 'Collector', `New product saved: ${product.title} (${product.price} BDT)`);
-      return { product, isDuplicate: false };
+      this.data.products.unshift(prod);
+      added.push(prod);
     }
-  }
-
-  public deleteProduct(id: string): boolean {
-    const prevLen = this.data.products.length;
-    this.data.products = this.data.products.filter(p => p.id !== id);
-    if (this.data.products.length !== prevLen) {
-      this.saveData();
-      return true;
-    }
-    return false;
-  }
-
-  // --- AI MODELS ---
-  public getModels(): AIModelConfig[] {
-    // Ensure all stored models have consistent properties
-    return this.data.aiModels.map(m => {
-      const pName = m.providerName || m.name || 'Cloud AI';
-      const isEn = m.enabled !== undefined ? m.enabled : (m.isEnabled !== undefined ? m.isEnabled : true);
-      const testStat = m.lastTestStatus || (m.status === 'online' ? 'Working' : (m.status === 'error' ? 'Failed' : 'Not Tested'));
-      return {
-        ...m,
-        providerName: pName,
-        name: pName,
-        apiType: m.apiType || 'openai-compatible',
-        enabled: isEn,
-        isEnabled: isEn,
-        lastTestStatus: testStat,
-        latency: m.latency ?? m.latencyMs,
-        latencyMs: m.latency ?? m.latencyMs,
-      };
-    });
-  }
-
-  public getModelById(id: string): AIModelConfig | undefined {
-    return this.getModels().find(m => m.id === id);
-  }
-
-  public saveModel(model: AIModelConfig): AIModelConfig {
-    if (!model.id || model.id.trim() === '') {
-      model.id = `model-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-    }
-
-    const providerName = (model.providerName || model.name || 'Cloud AI').trim();
-    const modelName = (model.modelName || '').trim();
-    const baseUrl = (model.baseUrl || 'https://api.openai.com/v1').trim();
-    const isEn = model.enabled !== undefined ? model.enabled : (model.isEnabled !== undefined ? model.isEnabled : true);
-    const lastTestStatus = model.lastTestStatus || (model.status === 'online' ? 'Working' : (model.status === 'error' ? 'Failed' : 'Not Tested'));
-    const latency = model.latency ?? model.latencyMs;
-
-    const normalizedModel: AIModelConfig = {
-      ...model,
-      id: model.id,
-      providerName,
-      name: providerName,
-      modelName,
-      baseUrl,
-      apiType: model.apiType || 'openai-compatible',
-      authHeaderType: model.authHeaderType || 'Bearer',
-      temperature: model.temperature ?? 0.7,
-      maxTokens: model.maxTokens || 2048,
-      systemPrompt: model.systemPrompt || 'You are an e-commerce marketing expert for Bangladesh.',
-      enabled: isEn,
-      isEnabled: isEn,
-      lastTestStatus,
-      status: lastTestStatus === 'Working' ? 'online' : (lastTestStatus === 'Failed' || lastTestStatus === 'Authentication Failed' ? 'error' : 'untested'),
-      latency,
-      latencyMs: latency,
-      lastTestedAt: model.lastTestedAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      createdAt: model.createdAt || new Date().toISOString(),
-    };
-
-    // If marked default, unset default on other models
-    if (normalizedModel.isDefault) {
-      this.data.aiModels.forEach(m => {
-        if (m.id !== normalizedModel.id) m.isDefault = false;
-      });
-    }
-
-    const idx = this.data.aiModels.findIndex(m => m.id === normalizedModel.id);
-    if (idx >= 0) {
-      // Preserve existing secret API key if client passed masked key or blank
-      if (!normalizedModel.apiKey || normalizedModel.apiKey.includes('••••') || normalizedModel.apiKey.trim() === '') {
-        normalizedModel.apiKey = this.data.aiModels[idx].apiKey || '';
-      }
-      this.data.aiModels[idx] = normalizedModel;
-    } else {
-      // If no model was default, make this one default
-      const hasDefault = this.data.aiModels.some(m => m.isDefault);
-      if (!hasDefault) {
-        normalizedModel.isDefault = true;
-      }
-      this.data.aiModels.push(normalizedModel);
-    }
-
     this.saveData();
-    return normalizedModel;
+    this.addLog('info', 'scraper', `Collected ${added.length} product(s) into database.`);
+    return added;
   }
 
-  public deleteModel(id: string): boolean {
-    const wasDefault = this.data.aiModels.find(m => m.id === id)?.isDefault;
-    this.data.aiModels = this.data.aiModels.filter(m => m.id !== id);
-
-    // If default model was deleted, promote another model to default
-    if (wasDefault && this.data.aiModels.length > 0) {
-      this.data.aiModels[0].isDefault = true;
-    }
-
-    // Clean up task assignments if referencing deleted model
-    const tasks = this.data.taskAssignments;
-    if (tasks.productAnalysis === id) tasks.productAnalysis = this.data.aiModels[0]?.id || '';
-    if (tasks.facebookCaption === id) tasks.facebookCaption = this.data.aiModels[0]?.id || '';
-    if (tasks.youtubeContent === id) tasks.youtubeContent = this.data.aiModels[0]?.id || '';
-    if (tasks.tiktokContent === id) tasks.tiktokContent = this.data.aiModels[0]?.id || '';
-    if (tasks.videoScript === id) tasks.videoScript = this.data.aiModels[0]?.id || '';
-    if (tasks.primaryModelId === id) tasks.primaryModelId = this.data.aiModels[0]?.id || '';
-    if (tasks.fallbackModelId === id) tasks.fallbackModelId = '';
-    if (tasks.fallbackModel2Id === id) tasks.fallbackModel2Id = '';
-
-    this.saveData();
-    return true;
-  }
-
-  public getTaskAssignments(): TaskModelAssignments {
-    return this.data.taskAssignments;
-  }
-
-  public saveTaskAssignments(assignments: TaskModelAssignments) {
-    this.data.taskAssignments = {
-      ...this.data.taskAssignments,
-      ...assignments,
-    };
-    this.saveData();
-    return this.data.taskAssignments;
-  }
-
-  // --- TAVILY ---
-  public getTavilyConfig(): TavilyConfig {
-    return this.data.tavily;
-  }
-
-  public saveTavilyConfig(config: Partial<TavilyConfig>) {
-    this.data.tavily = { ...this.data.tavily, ...config };
-    this.saveData();
-    return this.data.tavily;
-  }
-
-  // --- BRAND & PRICING ---
-  public getBrandSettings(): BrandSettings {
-    return this.data.brand;
-  }
-
-  public saveBrandSettings(brand: Partial<BrandSettings>) {
-    this.data.brand = { ...this.data.brand, ...brand };
-    this.saveData();
-    return this.data.brand;
-  }
-
-  public getPricingRules(): PricingRules {
-    return this.data.pricing;
-  }
-
-  public savePricingRules(pricing: Partial<PricingRules>) {
-    this.data.pricing = { ...this.data.pricing, ...pricing };
-    this.saveData();
-    return this.data.pricing;
-  }
-
-  // Calculate selling price according to rules
-  public calculateSellingPrice(sourcePrice: number): { profit: number; sellingPrice: number } {
-    const rules = this.data.pricing;
-    let profit = rules.fixedProfit;
-
-    if (rules.strategy === 'percentage') {
-      profit = Math.round((sourcePrice * rules.percentageProfit) / 100);
-      if (profit < rules.minProfit) profit = rules.minProfit;
-    } else if (rules.strategy === 'custom' && rules.customFormula) {
-      try {
-        // Safe evaluation of simple math formula
-        const sanitized = rules.customFormula.replace(/sourcePrice/g, String(sourcePrice));
-        if (/^[0-9+\-*/().\s]+$/.test(sanitized)) {
-          const evalVal = Function(`"use strict"; return (${sanitized});`)();
-          if (typeof evalVal === 'number' && !isNaN(evalVal)) {
-            const calculatedSelling = Math.round(evalVal);
-            profit = Math.max(rules.minProfit, calculatedSelling - sourcePrice);
-          }
-        }
-      } catch {
-        profit = rules.fixedProfit;
-      }
-    }
-
-    return {
-      profit,
-      sellingPrice: sourcePrice + profit,
-    };
-  }
-
-  // --- SOCIAL ACCOUNTS ---
-  public getSocialConfig(): SocialAccountConfig {
-    return this.data.social;
-  }
-
-  public saveSocialConfig(config: Partial<SocialAccountConfig>) {
-    this.data.social = { ...this.data.social, ...config };
-    this.saveData();
-    return this.data.social;
-  }
-
-  // --- QUEUE ---
-  public getQueue(): QueueItem[] {
+  // --- Queue ---
+  public getQueue(): QueueItemRecord[] {
     return this.data.queue;
   }
 
-  public addToQueue(item: QueueItem): QueueItem {
-    const idx = this.data.queue.findIndex(q => q.id === item.id);
-    if (idx >= 0) {
-      this.data.queue[idx] = item;
-    } else {
-      this.data.queue.unshift(item);
-    }
+  public addToQueue(item: Omit<QueueItemRecord, 'id' | 'createdAt'>): QueueItemRecord {
+    const newItem: QueueItemRecord = {
+      ...item,
+      id: `queue-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      createdAt: new Date().toISOString()
+    };
+    this.data.queue.unshift(newItem);
     this.saveData();
-    return item;
+    this.addLog('info', 'publisher', `Scheduled post added to queue for [${newItem.productTitle}].`);
+    return newItem;
   }
 
-  public updateQueueItem(id: string, updates: Partial<QueueItem>): QueueItem | null {
-    const item = this.data.queue.find(q => q.id === id);
-    if (!item) return null;
-    Object.assign(item, updates, { updatedAt: new Date().toISOString() });
+  public updateQueueItem(id: string, updates: Partial<QueueItemRecord>): QueueItemRecord | null {
+    const idx = this.data.queue.findIndex((q) => q.id === id);
+    if (idx === -1) return null;
+    this.data.queue[idx] = { ...this.data.queue[idx], ...updates };
     this.saveData();
-    return item;
+    return this.data.queue[idx];
   }
 
   public deleteQueueItem(id: string): boolean {
-    const prev = this.data.queue.length;
-    this.data.queue = this.data.queue.filter(q => q.id !== id);
-    if (this.data.queue.length !== prev) {
+    const len = this.data.queue.length;
+    this.data.queue = this.data.queue.filter((q) => q.id !== id);
+    if (this.data.queue.length !== len) {
       this.saveData();
       return true;
     }
     return false;
   }
 
-  // --- DUPLICATE PROTECTION ---
-  public isAlreadyPublished(productId: string, platform: string, contentType: string): boolean {
-    const key = `${productId}_${platform}_${contentType}`;
-    return !!this.data.duplicateHistory[key];
+  // --- Logs ---
+  public getLogs(): LogRecord[] {
+    return this.data.logs;
   }
 
-  public markAsPublished(productId: string, platform: string, contentType: string) {
-    const key = `${productId}_${platform}_${contentType}`;
-    this.data.duplicateHistory[key] = true;
-    this.saveData();
-  }
-
-  // --- AUTOMATION SETTINGS ---
-  public getAutomationSettings(): AutomationSettings {
-    return this.data.automation;
-  }
-
-  public saveAutomationSettings(settings: Partial<AutomationSettings>) {
-    this.data.automation = { ...this.data.automation, ...settings };
-    this.saveData();
-    return this.data.automation;
-  }
-
-  // --- LOGS ---
-  public getLogs(limit = 100): ActivityLog[] {
-    return this.data.logs.slice(0, limit);
-  }
-
-  public addLog(level: 'info' | 'warn' | 'error' | 'success', service: ActivityLog['service'], message: string, details?: Record<string, any>) {
-    const log: ActivityLog = {
-      id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+  public addLog(
+    level: 'info' | 'warn' | 'error' | 'success',
+    category: 'api' | 'scraper' | 'ai' | 'publisher' | 'system',
+    message: string,
+    metadata?: any
+  ): void {
+    const entry: LogRecord = {
+      id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
       timestamp: new Date().toISOString(),
       level,
-      service,
+      category,
       message,
-      details,
+      metadata
     };
-    this.data.logs.unshift(log);
+    this.data.logs.unshift(entry);
     if (this.data.logs.length > 300) {
       this.data.logs = this.data.logs.slice(0, 300);
     }
     this.saveData();
-    return log;
   }
 
-  public clearLogs() {
+  public clearLogs(): void {
     this.data.logs = [];
     this.saveData();
-    return true;
+  }
+
+  // --- Settings ---
+  public getSettings(): AppSettings {
+    return this.data.settings;
+  }
+
+  public updateSettings(updates: Partial<AppSettings>): AppSettings {
+    this.data.settings = { ...this.data.settings, ...updates };
+    this.saveData();
+    return this.data.settings;
+  }
+
+  public get(): AppDatabase {
+    return this.data;
+  }
+
+  public update(updater: (data: AppDatabase) => void): void {
+    updater(this.data);
+    this.saveData();
   }
 }
 
-export const db = new DatabaseService();
+export const db = new DatabaseManager();

@@ -1,341 +1,179 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Header } from './components/Header';
-import { DashboardTab } from './components/DashboardTab';
-import { ProductsTab } from './components/ProductsTab';
-import { AIModelsTab } from './components/AIModelsTab';
-import { TavilyTab } from './components/TavilyTab';
-import { CreativeStudioTab } from './components/CreativeStudioTab';
-import { QueueTab } from './components/QueueTab';
-import { SettingsTab } from './components/SettingsTab';
-import { LogsTab } from './components/LogsTab';
-import { GithubApkModal } from './components/GithubApkModal';
-import {
-  DashboardStats,
-  Product,
-  AIModelConfig,
-  TaskModelAssignments,
-  QueueItem,
-  LogEntry,
-  AppSettings,
-} from './types';
-import { api } from './api';
-import {
-  CheckCircle2,
-  AlertTriangle,
-  Info,
-  X,
-  Sparkles,
-  RefreshCw,
+import React, { useState, useEffect } from 'react';
+import { 
+  Cpu, 
+  ShoppingBag, 
+  LayoutDashboard, 
+  Film, 
+  TrendingUp, 
+  Clock, 
+  CheckSquare, 
+  Terminal, 
+  Settings as SettingsIcon, 
+  Sparkles, 
+  Server,
+  ShieldCheck 
 } from 'lucide-react';
+import { CloudModelsManager } from './components/CloudModelsManager';
+import { Dashboard } from './components/Dashboard';
+import { ProductsCollector, Product } from './components/ProductsCollector';
+import { CreativeStudio } from './components/CreativeStudio';
+import { TavilyResearch } from './components/TavilyResearch';
+import { PublishingQueue } from './components/PublishingQueue';
+import { ReviewQueue } from './components/ReviewQueue';
+import { SystemLogs } from './components/SystemLogs';
+import { SettingsModal } from './components/SettingsModal';
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [isApkModalOpen, setIsApkModalOpen] = useState<boolean>(false);
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [models, setModels] = useState<Array<AIModelConfig & { hasKey: boolean }>>([]);
-  const [taskAssignments, setTaskAssignments] = useState<TaskModelAssignments>({
-    productAnalysis: 'gemini-flash',
-    facebookCaption: 'gemini-flash',
-    youtubeContent: 'gemini-flash',
-    tiktokContent: 'gemini-flash',
-    videoScript: 'gemini-flash',
-    imagePrompt: 'gemini-flash',
-    generalMarketing: 'gemini-flash',
-    enableFallback: true,
-  });
-  const [queue, setQueue] = useState<QueueItem[]>([]);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [selectedProductForStudio, setSelectedProductForStudio] = useState<Product | null>(null);
+type TabId = 
+  | 'cloud-models' 
+  | 'dashboard' 
+  | 'products' 
+  | 'creative' 
+  | 'tavily' 
+  | 'queue' 
+  | 'review' 
+  | 'logs';
 
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isRunningAuto, setIsRunningAuto] = useState<boolean>(false);
-  const [notification, setNotification] = useState<{
-    type: 'success' | 'info' | 'error';
-    title: string;
-    message: string;
-  } | null>(null);
+export function App() {
+  const [currentTab, setCurrentTab] = useState<TabId>('cloud-models');
+  const [selectedProductForPost, setSelectedProductForPost] = useState<Product | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeModelInfo, setActiveModelInfo] = useState<string>('Loading...');
 
-  // Fetch all core state
-  const loadAllData = useCallback(async () => {
+  const refreshActiveModel = async () => {
     try {
-      const [
-        statsData,
-        productsData,
-        modelsData,
-        assignmentsData,
-        queueData,
-        logsData,
-        settingsData,
-      ] = await Promise.all([
-        api.getStats().catch(() => null),
-        api.getProducts().catch(() => []),
-        api.getAIModels().catch(() => []),
-        api.getTaskAssignments().catch(() => ({
-          productAnalysis: 'gemini-flash',
-          facebookCaption: 'gemini-flash',
-          youtubeContent: 'gemini-flash',
-          tiktokContent: 'gemini-flash',
-          videoScript: 'gemini-flash',
-          imagePrompt: 'gemini-flash',
-          generalMarketing: 'gemini-flash',
-          enableFallback: true,
-        })),
-        api.getQueue().catch(() => []),
-        api.getLogs().catch(() => []),
-        api.getSettings().catch(() => null),
-      ]);
-
-      if (statsData) setStats(statsData);
-      if (productsData) setProducts(productsData);
-      if (modelsData) setModels(modelsData);
-      if (assignmentsData) setTaskAssignments(assignmentsData);
-      if (queueData) setQueue(queueData);
-      if (logsData) setLogs(logsData);
-      if (settingsData) setSettings(settingsData);
-    } catch (err: any) {
-      console.error('Failed to load application data:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Initial load + periodic polling (every 12 seconds)
-  useEffect(() => {
-    loadAllData();
-    const interval = setInterval(() => {
-      loadAllData();
-    }, 12000);
-    return () => clearInterval(interval);
-  }, [loadAllData]);
-
-  // Run full automated pipeline on demand
-  const handleRunAutomation = async () => {
-    setIsRunningAuto(true);
-    setNotification({
-      type: 'info',
-      title: 'Automated Pipeline Running',
-      message:
-        'Scanning ShopBase BD, scraping high-res images, performing Tavily research, generating AI content, and rendering video creatives...',
-    });
-
-    try {
-      const res = await api.runAutomationNow();
-      await loadAllData();
-
-      if (res.processedCount > 0) {
-        setNotification({
-          type: 'success',
-          title: 'Automation Pipeline Complete',
-          message: `Successfully processed ${res.processedCount} product(s) into creative videos and publishing queues!`,
-        });
-      } else {
-        setNotification({
-          type: 'info',
-          title: 'Pipeline Checked',
-          message: res.message || 'No new unqueued products found to process.',
-        });
+      const res = await fetch('/api/cloud-models');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.models)) {
+        const defaultMod = data.models.find((m: any) => m.isDefault && m.status === 'working');
+        const anyWorking = data.models.find((m: any) => m.status === 'working');
+        const active = defaultMod || anyWorking || data.models[0];
+        if (active) {
+          setActiveModelInfo(`${active.providerName}: ${active.modelName}`);
+        } else {
+          setActiveModelInfo('No models configured');
+        }
       }
-    } catch (err: any) {
-      setNotification({
-        type: 'error',
-        title: 'Pipeline Run Error',
-        message: err.message || 'An error occurred during pipeline execution.',
-      });
-    } finally {
-      setIsRunningAuto(false);
+    } catch {
+      setActiveModelInfo('Backend offline');
     }
   };
 
-  // Run pipeline for a specific single product
-  const handleRunSingleProductPipeline = async (productId: string) => {
-    const prod = products.find((p) => p.id === productId);
-    setNotification({
-      type: 'info',
-      title: 'Generating Creatives',
-      message: `Generating marketing copy & video creative for "${prod?.title || 'product'}"...`,
-    });
+  useEffect(() => {
+    refreshActiveModel();
+  }, [currentTab]);
 
-    try {
-      const res = await api.runProductPipeline(productId);
-      await loadAllData();
-      setNotification({
-        type: 'success',
-        title: 'Creatives Generated!',
-        message: res.message || 'Product content generated and enqueued successfully.',
-      });
-      setActiveTab('queue');
-    } catch (err: any) {
-      setNotification({
-        type: 'error',
-        title: 'Generation Failed',
-        message: err.message || 'Could not complete pipeline for this product.',
-      });
-    }
+  const handleGenerateForProduct = (product: Product) => {
+    setSelectedProductForPost(product);
+    setCurrentTab('creative');
   };
 
-  // Open video studio with pre-selected product
-  const handleOpenVideoStudio = (product: Product) => {
-    setSelectedProductForStudio(product);
-    setActiveTab('creatives');
-  };
+  const navItems: { id: TabId; label: string; icon: React.ReactNode; badge?: string }[] = [
+    { id: 'cloud-models', label: 'Cloud Models', icon: <Cpu className="w-4 h-4" />, badge: 'Core API' },
+    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: 'products', label: 'ShopBase Products', icon: <ShoppingBag className="w-4 h-4" /> },
+    { id: 'creative', label: 'Creative Studio', icon: <Film className="w-4 h-4" /> },
+    { id: 'tavily', label: 'Tavily Trends', icon: <TrendingUp className="w-4 h-4" /> },
+    { id: 'queue', label: 'Publish Queue', icon: <Clock className="w-4 h-4" /> },
+    { id: 'review', label: 'Review Queue', icon: <CheckSquare className="w-4 h-4" /> },
+    { id: 'logs', label: 'System Logs', icon: <Terminal className="w-4 h-4" /> }
+  ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
-      {/* Sticky Top Header Navigation */}
-      <Header
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        stats={stats}
-        onRefresh={loadAllData}
-        onRunAuto={handleRunAutomation}
-        isRunningAuto={isRunningAuto}
-        onOpenApkModal={() => setIsApkModalOpen(true)}
-      />
-
-      {/* Global Notification Toast */}
-      {notification && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 w-full">
-          <div
-            className={`p-4 rounded-2xl border flex items-start justify-between shadow-lg transition-all animate-fadeIn ${
-              notification.type === 'success'
-                ? 'bg-emerald-950/80 border-emerald-500/30 text-emerald-200'
-                : notification.type === 'error'
-                ? 'bg-rose-950/80 border-rose-500/30 text-rose-200'
-                : 'bg-indigo-950/80 border-indigo-500/30 text-indigo-200'
-            }`}
-          >
-            <div className="flex items-start space-x-3">
-              {notification.type === 'success' && (
-                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-              )}
-              {notification.type === 'error' && (
-                <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-              )}
-              {notification.type === 'info' && (
-                <Sparkles className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
-              )}
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider">
-                  {notification.title}
-                </h4>
-                <p className="text-xs opacity-90 mt-0.5 leading-relaxed">
-                  {notification.message}
-                </p>
-              </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-slate-950">
+      {/* Top Navbar */}
+      <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          {/* Logo & Brand */}
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setCurrentTab('dashboard')}>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-slate-950 font-black text-lg shadow-lg shadow-emerald-500/20">
+              🛍️
             </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-white text-base tracking-tight">ShopBase AI</span>
+                <span className="px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+                  v1.0
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-400 hidden sm:block">Social Media & Video Automation</div>
+            </div>
+          </div>
 
+          {/* Active Model Indicator */}
+          <div 
+            onClick={() => setCurrentTab('cloud-models')}
+            className="hidden md:flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition text-xs"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-slate-400">Active AI:</span>
+            <span className="font-mono font-medium text-emerald-400 truncate max-w-[200px]">
+              {activeModelInfo}
+            </span>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setNotification(null)}
-              className="text-slate-400 hover:text-white p-1 rounded-lg transition"
+              onClick={() => setIsSettingsOpen(true)}
+              className="p-2 rounded-lg border border-slate-800 hover:bg-slate-900 text-slate-400 hover:text-white transition"
+              title="Settings"
             >
-              <X className="w-4 h-4" />
+              <SettingsIcon className="w-4 h-4" />
             </button>
           </div>
         </div>
-      )}
+
+        {/* Horizontal Navigation Tabs */}
+        <div className="max-w-7xl mx-auto mt-2 overflow-x-auto no-scrollbar flex items-center gap-1 border-t border-slate-900 pt-2">
+          {navItems.map((item) => {
+            const isActive = currentTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setCurrentTab(item.id)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  isActive
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 border border-transparent'
+                }`}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+                {item.badge && (
+                  <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {isLoading && !stats ? (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 text-slate-400">
-            <RefreshCw className="w-8 h-8 animate-spin text-indigo-500" />
-            <p className="text-sm font-medium">Initializing ShopBase AI Automation System...</p>
-          </div>
-        ) : (
-          <>
-            {activeTab === 'dashboard' && (
-              <DashboardTab
-                stats={stats}
-                products={products}
-                queue={queue}
-                setActiveTab={setActiveTab}
-                onRunAuto={handleRunAutomation}
-              />
-            )}
-
-            {activeTab === 'products' && (
-              <ProductsTab
-                products={products}
-                onRefresh={loadAllData}
-                onOpenVideoStudio={handleOpenVideoStudio}
-                onRunPipeline={handleRunSingleProductPipeline}
-              />
-            )}
-
-            {activeTab === 'models' && (
-              <AIModelsTab
-                models={models}
-                taskAssignments={taskAssignments}
-                onRefresh={loadAllData}
-              />
-            )}
-
-            {activeTab === 'tavily' && <TavilyTab />}
-
-            {activeTab === 'creatives' && (
-              <CreativeStudioTab
-                products={products}
-                selectedProduct={selectedProductForStudio}
-                onSelectProduct={(prod) => setSelectedProductForStudio(prod)}
-                onRefresh={loadAllData}
-                onGoToQueue={() => setActiveTab('queue')}
-              />
-            )}
-
-            {activeTab === 'queue' && (
-              <QueueTab
-                queue={queue}
-                isTestMode={stats?.testMode ?? true}
-                onRefresh={loadAllData}
-              />
-            )}
-
-            {activeTab === 'settings' && (
-              <SettingsTab
-                settings={settings}
-                onRefresh={loadAllData}
-                onOpenApkModal={() => setIsApkModalOpen(true)}
-              />
-            )}
-
-            {activeTab === 'logs' && <LogsTab logs={logs} onRefresh={loadAllData} />}
-          </>
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 md:p-8">
+        {currentTab === 'cloud-models' && <CloudModelsManager />}
+        {currentTab === 'dashboard' && <Dashboard onNavigate={(t) => setCurrentTab(t as TabId)} />}
+        {currentTab === 'products' && (
+          <ProductsCollector onGenerateForProduct={handleGenerateForProduct} />
         )}
+        {currentTab === 'creative' && (
+          <CreativeStudio
+            selectedProduct={selectedProductForPost}
+            onPostScheduled={() => setCurrentTab('queue')}
+          />
+        )}
+        {currentTab === 'tavily' && <TavilyResearch />}
+        {currentTab === 'queue' && <PublishingQueue />}
+        {currentTab === 'review' && <ReviewQueue />}
+        {currentTab === 'logs' && <SystemLogs />}
       </main>
 
-      {/* GitHub APK Maker & Mobile App Modal */}
-      <GithubApkModal
-        isOpen={isApkModalOpen || activeTab === 'apk'}
-        onClose={() => {
-          setIsApkModalOpen(false);
-          if (activeTab === 'apk') setActiveTab('dashboard');
-        }}
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
       />
-
-      {/* Footer */}
-      <footer className="bg-slate-900 border-t border-slate-800 text-slate-400 text-xs py-5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="flex items-center space-x-2">
-            <span className="font-semibold text-slate-300">ShopBase AI Social Media Automation</span>
-            <span>•</span>
-            <span className="text-slate-500">Model-Agnostic Cloud Engine</span>
-          </div>
-
-          <div className="flex items-center space-x-4 text-slate-400">
-            <span>ShopBase BD Scraper</span>
-            <span>•</span>
-            <span>Tavily Grounding</span>
-            <span>•</span>
-            <span>Meta Graph & TikTok APIs</span>
-            <span>•</span>
-            <span className="text-emerald-400">
-              {stats?.isTestMode ? 'Test Mode Enabled' : 'Live Mode'}
-            </span>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
