@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
@@ -14,6 +15,28 @@ const PORT = 3000;
 
 async function startServer() {
   const app = express();
+
+  // Enable comprehensive CORS for cross-origin preview iframes and API clients
+  app.use(
+    cors({
+      origin: true, // Reflect request origin
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+    })
+  );
+  app.options('*', cors());
+
+  // Additional CORS and header fallbacks for sandboxed iframes
+  app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    if (req.method === 'OPTIONS') {
+      return res.status(204).end();
+    }
+    next();
+  });
 
   // Middleware
   app.use(express.json({ limit: '10mb' }));

@@ -7,23 +7,28 @@ import {
   TavilyResearchResult,
 } from './types.ts';
 
-async function safeFetch<T>(url: string, options?: RequestInit): Promise<T> {
+async function safeFetch<T>(url: string, options?: RequestInit, retries = 1): Promise<T> {
+  const method = (options?.method || 'GET').toUpperCase();
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    ...((options?.headers as Record<string, string>) || {}),
+  };
+
+  if (method !== 'GET' && method !== 'HEAD' && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+
   try {
     const res = await fetch(url, {
       ...options,
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
+      headers,
     });
 
     const contentType = res.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) {
       const rawText = await res.text();
-      // Handle the case where Vite or proxy might return HTML gracefully
       throw new Error(
-        `API endpoint returned non-JSON response (${res.status} ${res.statusText}): ${rawText.slice(0, 100)}...`
+        `API endpoint returned non-JSON response (${res.status} ${res.statusText}): ${rawText.slice(0, 80)}...`
       );
     }
 
@@ -34,7 +39,11 @@ async function safeFetch<T>(url: string, options?: RequestInit): Promise<T> {
 
     return data;
   } catch (err: any) {
-    console.error(`[API Error] ${url}:`, err);
+    if (retries > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      return safeFetch<T>(url, options, retries - 1);
+    }
+    console.error(`[API Error] ${url}:`, err.message || err);
     throw err;
   }
 }
