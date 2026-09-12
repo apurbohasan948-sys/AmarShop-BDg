@@ -294,3 +294,16 @@ export interface AppSettings {
   maxPostsPerDay: number;
   socialAccounts: SocialAccount[];
 }
+
+export interface ApkInfo {
+  appName: string;
+  appId: string;
+  webDir: string;
+  workflowFile: string;
+  workflowYaml: string;
+  hasCapacitor: boolean;
+  hasWorkflow: boolean;
+  instructionsBangla: string[];
+  instructionsEnglish: string[];
+}
+

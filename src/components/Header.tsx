@@ -12,6 +12,8 @@ import {
   AlertTriangle,
   Play,
   RefreshCw,
+  Smartphone,
+  Github,
 } from 'lucide-react';
 import { DashboardStats } from '../types';
 
@@ -22,6 +24,7 @@ interface HeaderProps {
   onRefresh: () => void;
   onRunAuto: () => void;
   isRunningAuto: boolean;
+  onOpenApkModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   onRefresh,
   onRunAuto,
   isRunningAuto,
+  onOpenApkModal,
 }) => {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -39,6 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'tavily', label: 'Tavily Research', icon: Search },
     { id: 'creatives', label: 'Video Studio', icon: Video, badge: stats?.videosGenerated },
     { id: 'queue', label: 'Publishing Queue', icon: ListOrdered, badge: stats?.scheduledPosts || stats?.newProducts },
+    { id: 'apk', label: 'GitHub APK', icon: Smartphone, highlight: true },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'logs', label: 'Logs', icon: Terminal },
   ];
@@ -105,6 +110,18 @@ export const Header: React.FC<HeaderProps> = ({
             <span>{isRunningAuto ? 'Running...' : 'Run Pipeline'}</span>
           </button>
 
+          {/* GitHub APK Maker Button */}
+          {onOpenApkModal && (
+            <button
+              onClick={onOpenApkModal}
+              title="GitHub APK Maker - Build & Download Android APK"
+              className="flex items-center space-x-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-semibold px-2.5 py-1.5 rounded-lg shadow-sm transition"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+              <span>APK Make</span>
+            </button>
+          )}
+
           {/* Refresh Button */}
           <button
             onClick={onRefresh}
@@ -127,8 +144,8 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center space-x-2 px-3.5 py-2.5 text-xs font-medium border-b-2 transition whitespace-nowrap ${
                 isActive
-                  ? 'border-indigo-500 text-indigo-400 bg-slate-800/40'
-                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                  ? (tab as any).highlight ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20' : 'border-indigo-500 text-indigo-400 bg-slate-800/40'
+                  : (tab as any).highlight ? 'border-transparent text-emerald-400/90 hover:text-emerald-300 hover:border-emerald-600/50' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
               }`}
             >
               <Icon className="w-4 h-4" />

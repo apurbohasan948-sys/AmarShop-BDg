@@ -13,6 +13,8 @@ import {
   Youtube,
   Video,
   Key,
+  Smartphone,
+  Github,
 } from 'lucide-react';
 import {
   BrandSettings,
@@ -26,9 +28,10 @@ import { api } from '../api';
 interface SettingsTabProps {
   settings?: AppSettings | null;
   onRefresh: () => void;
+  onOpenApkModal?: () => void;
 }
 
-export const SettingsTab: React.FC<SettingsTabProps> = ({ onRefresh }) => {
+export const SettingsTab: React.FC<SettingsTabProps> = ({ onRefresh, onOpenApkModal }) => {
   const [brand, setBrand] = useState<BrandSettings>({
     brandName: 'ShopBase BD',
     logoUrl: '',
@@ -597,6 +600,53 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onRefresh }) => {
             >
               {testStatus.tiktok?.loading ? 'Testing...' : 'Test TikTok API'}
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Android APK & GitHub CI/CD section */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30 space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+              <Smartphone className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-white">Android APK & GitHub Actions বিল্ডার</h3>
+                <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30 flex items-center gap-1">
+                  <Github className="w-3 h-3" /> Ready
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                GitHub Actions ওয়ার্কফ্লো দিয়ে সরাসরি অ্যান্ড্রয়েড APK বিল্ড, ডাউনলোড ও মোবাইলে ইন্সটল করুন
+              </p>
+            </div>
+          </div>
+
+          {onOpenApkModal && (
+            <button
+              onClick={onOpenApkModal}
+              className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-600/20"
+            >
+              <Smartphone className="w-4 h-4" />
+              <span>GitHub APK Maker খুলুন</span>
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 text-xs">
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+            <span className="text-slate-400 block mb-1">ওয়ার্কফ্লো ফাইল:</span>
+            <code className="text-emerald-400 font-mono text-[11px]">.github/workflows/build-apk.yml</code>
+          </div>
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+            <span className="text-slate-400 block mb-1">Capacitor ফ্রেমওয়ার্ক:</span>
+            <code className="text-slate-200 font-mono text-[11px]">@capacitor/android 8.x</code>
+          </div>
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+            <span className="text-slate-400 block mb-1">আউটপুট ফরম্যাট:</span>
+            <span className="text-emerald-300 font-semibold text-[11px]">ShopBase-AI-debug.apk</span>
           </div>
         </div>
       </div>

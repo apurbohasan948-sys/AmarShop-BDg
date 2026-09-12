@@ -8,6 +8,7 @@ import { CreativeStudioTab } from './components/CreativeStudioTab';
 import { QueueTab } from './components/QueueTab';
 import { SettingsTab } from './components/SettingsTab';
 import { LogsTab } from './components/LogsTab';
+import { GithubApkModal } from './components/GithubApkModal';
 import {
   DashboardStats,
   Product,
@@ -29,6 +30,7 @@ import {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [isApkModalOpen, setIsApkModalOpen] = useState<boolean>(false);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [models, setModels] = useState<Array<AIModelConfig & { hasKey: boolean }>>([]);
@@ -189,6 +191,7 @@ export default function App() {
         onRefresh={loadAllData}
         onRunAuto={handleRunAutomation}
         isRunningAuto={isRunningAuto}
+        onOpenApkModal={() => setIsApkModalOpen(true)}
       />
 
       {/* Global Notification Toast */}
@@ -290,13 +293,26 @@ export default function App() {
             )}
 
             {activeTab === 'settings' && (
-              <SettingsTab settings={settings} onRefresh={loadAllData} />
+              <SettingsTab
+                settings={settings}
+                onRefresh={loadAllData}
+                onOpenApkModal={() => setIsApkModalOpen(true)}
+              />
             )}
 
             {activeTab === 'logs' && <LogsTab logs={logs} onRefresh={loadAllData} />}
           </>
         )}
       </main>
+
+      {/* GitHub APK Maker & Mobile App Modal */}
+      <GithubApkModal
+        isOpen={isApkModalOpen || activeTab === 'apk'}
+        onClose={() => {
+          setIsApkModalOpen(false);
+          if (activeTab === 'apk') setActiveTab('dashboard');
+        }}
+      />
 
       {/* Footer */}
       <footer className="bg-slate-900 border-t border-slate-800 text-slate-400 text-xs py-5">

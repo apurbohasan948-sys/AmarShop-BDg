@@ -12,6 +12,7 @@ import {
   DashboardStats,
   AppSettings,
   SocialAccount,
+  ApkInfo,
 } from './types';
 
 export const api = {
@@ -442,6 +443,20 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ productId, autoApprove }),
+    });
+    return res.json();
+  },
+
+  getApkInfo: async (): Promise<ApkInfo> => {
+    const res = await fetch('/api/apk/info');
+    return res.json();
+  },
+
+  updateApkConfig: async (config: { appName?: string; appId?: string }): Promise<{ success: boolean; config: any }> => {
+    const res = await fetch('/api/apk/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
     });
     return res.json();
   },

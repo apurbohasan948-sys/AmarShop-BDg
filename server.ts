@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import { db } from './server/db';
@@ -371,6 +372,66 @@ app.get('/api/logs', (req, res) => {
 app.post('/api/logs/clear', (req, res) => {
   db.clearLogs();
   res.json({ success: true });
+});
+
+// --- GITHUB APK BUILDER & CONFIG ---
+app.get('/api/apk/info', (req, res) => {
+  try {
+    let capacitorConfig = {};
+    const capPath = path.join(process.cwd(), 'capacitor.config.json');
+    if (fs.existsSync(capPath)) {
+      capacitorConfig = JSON.parse(fs.readFileSync(capPath, 'utf8'));
+    }
+
+    let workflowYaml = '';
+    const wfPath = path.join(process.cwd(), '.github', 'workflows', 'build-apk.yml');
+    if (fs.existsSync(wfPath)) {
+      workflowYaml = fs.readFileSync(wfPath, 'utf8');
+    }
+
+    res.json({
+      appName: (capacitorConfig as any).appName || 'ShopBase AI',
+      appId: (capacitorConfig as any).appId || 'com.shopbase.ai.automation',
+      webDir: (capacitorConfig as any).webDir || 'dist',
+      workflowFile: '.github/workflows/build-apk.yml',
+      workflowYaml,
+      hasCapacitor: true,
+      hasWorkflow: !!workflowYaml,
+      instructionsBangla: [
+        '১. AI Studio-র উপরে ডানদিকের Settings মেনু থেকে "Export to GitHub" সিলেক্ট করে আপনার GitHub রেপোজিটরিতে কোড পুশ করুন।',
+        '২. আপনার GitHub রেপোজিটরি ওপেন করে "Actions" ট্যাবে যান।',
+        '৩. বামদিকের লিস্ট থেকে "Build Android APK (GitHub APK Maker)" ওয়ার্কফ্লো নির্বাচন করুন।',
+        '৪. "Run workflow" বাটনে ক্লিক করুন (Build Type: debug)।',
+        '৫. বিল্ড শেষ হলে (৩-৪ মিনিট) রান সামারির Artifacts সেকশন থেকে "ShopBase-AI-Android-APK" জিপ ফাইল ডাউনলোড করুন এবং ফোনে ইন্সটল করুন।'
+      ],
+      instructionsEnglish: [
+        '1. Export this repository to GitHub via the AI Studio Settings menu (Export to GitHub).',
+        '2. Navigate to your GitHub repository and open the "Actions" tab.',
+        '3. Select the "Build Android APK (GitHub APK Maker)" workflow from the left sidebar.',
+        '4. Click "Run workflow" -> select "debug" build -> Click the green Run button.',
+        '5. Once finished (3-4 minutes), scroll down to "Artifacts" and download "ShopBase-AI-Android-APK". Transfer it to your Android device and install!'
+      ]
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/apk/config', (req, res) => {
+  try {
+    const { appName, appId } = req.body;
+    const capPath = path.join(process.cwd(), 'capacitor.config.json');
+    let config: any = {};
+    if (fs.existsSync(capPath)) {
+      config = JSON.parse(fs.readFileSync(capPath, 'utf8'));
+    }
+    if (appName) config.appName = appName;
+    if (appId) config.appId = appId;
+    fs.writeFileSync(capPath, JSON.stringify(config, null, 2), 'utf8');
+    res.json({ success: true, config });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // --- STARTUP & VITE MIDDLEWARE ---

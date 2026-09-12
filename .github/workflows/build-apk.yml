@@ -1,0 +1,125 @@
+name: Build Android APK (GitHub APK Maker)
+
+on:
+  push:
+    branches: [ main, master ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build Type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release-unsigned
+      create_release:
+        description: 'Create GitHub Release with APK'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build-apk:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Dependencies
+        run: |
+          npm ci || npm install
+
+      - name: Build Web Application
+        run: |
+          npx vite build
+
+      - name: Setup Capacitor Android
+        run: |
+          if [ ! -d "android" ]; then
+            echo "Adding Capacitor Android platform..."
+            npx cap add android
+          else
+            echo "Android platform already exists, syncing..."
+            npx cap sync android
+          fi
+
+      - name: Grant Execute Permission to Gradlew
+        run: |
+          cd android
+          chmod +x gradlew
+
+      - name: Build Debug APK
+        if: ${{ github.event.inputs.build_type != 'release-unsigned' }}
+        run: |
+          cd android
+          ./gradlew assembleDebug --stacktrace
+          echo "Debug APK built successfully!"
+
+      - name: Build Unsigned Release APK
+        if: ${{ github.event.inputs.build_type == 'release-unsigned' }}
+        run: |
+          cd android
+          ./gradlew assembleRelease --stacktrace
+          echo "Release APK built successfully!"
+
+      - name: Find and Rename APK
+        run: |
+          mkdir -p build-output
+          if [ -f "android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+            cp android/app/build/outputs/apk/debug/app-debug.apk build-output/ShopBase-AI-v1.0-debug.apk
+            echo "Found debug APK!"
+          fi
+          if [ -f "android/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
+            cp android/app/build/outputs/apk/release/app-release-unsigned.apk build-output/ShopBase-AI-v1.0-release-unsigned.apk
+            echo "Found release APK!"
+          fi
+          ls -la build-output/
+
+      - name: Upload APK Artifact to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShopBase-AI-Android-APK
+          path: build-output/*.apk
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: ${{ github.event.inputs.create_release == true || startsWith(github.ref, 'refs/tags/v') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build-output/*.apk
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## 📱 ShopBase AI - Android APK Release
+            
+            This Android APK was automatically compiled via **GitHub Actions APK Maker**.
+            
+            ### Installation Instructions:
+            1. Download `ShopBase-AI-v1.0-debug.apk` below.
+            2. Transfer to or open directly on your Android device.
+            3. Tap on the file and choose "Install".
+            4. If prompted, enable "Install from Unknown Sources".
+            5. Enjoy ShopBase AI Social Media Automation on your phone!
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
