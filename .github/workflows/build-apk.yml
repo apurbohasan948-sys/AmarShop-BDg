@@ -21,6 +21,8 @@ on:
         default: false
         type: boolean
 
+permissions: write-all
+
 jobs:
   build-apk:
     name: Build Android APK
@@ -30,11 +32,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: 22
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -47,7 +48,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          npm ci || npm install
+          npm install
 
       - name: Build Web Application
         run: |
@@ -58,10 +59,9 @@ jobs:
           if [ ! -d "android" ]; then
             echo "Adding Capacitor Android platform..."
             npx cap add android
-          else
-            echo "Android platform already exists, syncing..."
-            npx cap sync android
           fi
+          echo "Syncing web assets to Android platform..."
+          npx cap sync android
 
       - name: Grant Execute Permission to Gradlew
         run: |
@@ -85,14 +85,10 @@ jobs:
       - name: Find and Rename APK
         run: |
           mkdir -p build-output
-          if [ -f "android/app/build/outputs/apk/debug/app-debug.apk" ]; then
-            cp android/app/build/outputs/apk/debug/app-debug.apk build-output/ShopBase-AI-v1.0-debug.apk
-            echo "Found debug APK!"
-          fi
-          if [ -f "android/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
-            cp android/app/build/outputs/apk/release/app-release-unsigned.apk build-output/ShopBase-AI-v1.0-release-unsigned.apk
-            echo "Found release APK!"
-          fi
+          echo "Locating built APK files:"
+          find android/app/build/outputs/apk -name "*.apk" -type f
+          find android/app/build/outputs/apk -name "*debug*.apk" -exec cp {} build-output/ShopBase-AI-v1.0-debug.apk \; 2>/dev/null || true
+          find android/app/build/outputs/apk -name "*release*.apk" -exec cp {} build-output/ShopBase-AI-v1.0-release.apk \; 2>/dev/null || true
           ls -la build-output/
 
       - name: Upload APK Artifact to GitHub
