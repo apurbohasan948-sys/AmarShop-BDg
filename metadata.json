@@ -1,0 +1,6 @@
+{
+  "name": "ShopBase AI Social Media Automation",
+  "description": "Automated product-to-social-media marketing system that collects products and high-res images from ShopBase BD, researches with Tavily, generates marketing copy with multi-model AI, renders 9:16 vertical videos, and manages publishing queues.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
